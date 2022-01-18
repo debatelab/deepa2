@@ -1,2 +1,2 @@
-# deepa2-resources
-Resources for DeepA2 Argument Analysis Framework (Notebooks, Tools, Datasets, etc.)
+# deepa2-datasets
+Resources for Creating, Importing and Managing DeepA2 Argument Analysis Framework Datasets
