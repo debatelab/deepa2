@@ -1,0 +1,6 @@
+name: deepa2datasets
+dependencies:
+  - python=3.8
+  - numpy
+  - pandas
+  - ipykernel
