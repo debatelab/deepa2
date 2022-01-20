@@ -4,3 +4,4 @@ dependencies:
   - numpy
   - pandas
   - ipykernel
+  - jinja2

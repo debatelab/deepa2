@@ -1,0 +1,6 @@
+(1) {{ hypothesis | lowerall }}
+(2) {{ hypothesis | conditional(premise | negation) }}
+--
+with modus ponens from (1) (2)
+--
+(3) {{ premise | negation }}

@@ -1,9 +1,9 @@
 from deepa2datasets.builder import Director
-from deepa2datasets.nli_builder import NLIBuilder
+from deepa2datasets.nli_builder import eSNLIBuilder
 from dataclasses import asdict
 
 director = Director()
-builder = NLIBuilder()
+builder = eSNLIBuilder()
 director.builder = builder
 
 print("Standard basic product: ")

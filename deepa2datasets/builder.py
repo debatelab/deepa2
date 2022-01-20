@@ -48,23 +48,23 @@ class DeepA2Item():
     argdown_reconstruction:str = None
     erroneous_argdown:str = None
 
-    reason_statements:List[QuotedStatement] = []
-    conclusion_statements:List[QuotedStatement] = []
+    reason_statements:List[QuotedStatement] = None
+    conclusion_statements:List[QuotedStatement] = None
     
-    premises:List[ArgdownStatement] = []
-    intermediary_conclusion:List[ArgdownStatement] = []
-    conclusion:List[ArgdownStatement] = []
+    premises:List[ArgdownStatement] = None
+    intermediary_conclusion:List[ArgdownStatement] = None
+    conclusion:List[ArgdownStatement] = None
     
-    premises_formalized:List[Formalization] = []
-    intermediary_conclusion_formalized:List[Formalization] = []
-    conclusion_formalized:List[Formalization] = []
-    predicate_placeholders:List[str] = []
-    entity_placeholders:List[str] = []
-    misc_placeholders:List[str] = []
+    premises_formalized:List[Formalization] = None
+    intermediary_conclusion_formalized:List[Formalization] = None
+    conclusion_formalized:List[Formalization] = None
+    predicate_placeholders:List[str] = None
+    entity_placeholders:List[str] = None
+    misc_placeholders:List[str] = None
 
-    distractors:List[str] = []
+    distractors:List[str] = None
     id:str = "123-456"
-    metadata:Dict = {}
+    metadata:Dict = None
 
     
 
@@ -81,7 +81,15 @@ class Builder(ABC):
         pass
 
     @abstractmethod
-    def preprocess_input(self) -> None:
+    def fetch_input(self,input_dataset) -> Any:
+        """
+        Fetches items to be processed for building next product and returns 
+        dataset with remaining input items which will be processed later.
+        """
+        pass
+
+    @abstractmethod
+    def configure_product(self) -> None:
         pass
 
     @abstractmethod
