@@ -81,10 +81,17 @@ class Builder(ABC):
         pass
 
     @abstractmethod
-    def fetch_input(self,input_dataset) -> Any:
+    def fetch_input(self,input_data) -> Any:
         """
         Fetches items to be processed for building next product and returns 
         dataset with remaining input items which will be processed later.
+        """
+        pass
+
+    @abstractmethod
+    def fetch_batch(self, input_batch) -> None:
+        """
+        Fetches items to be processed for building from batch.
         """
         pass
 
@@ -133,14 +140,17 @@ class Director:
         self._builder = builder
 
     """
-    The Director can construct several product variations using the same
-    building steps.
+    The Director provides a function that can me mapped over a dataset (accepting batches).
     """
 
-    def build_minimal_viable_product(self) -> None:
-        self.builder.produce_part_a()
+    def transform(self,batched_input:Dict[List]) -> Dict[List]:
+        self.builder.fetch_batch(batched_input)
+        self.builder.configure_product()
+        self.builder.produce_da2item()
+        da2items = self.builder.product # list of dicts
+        # transpose to dict of lists
+        batched_result = {}
+        for k in da2items[0].keys():
+            batched_result[k] = [record[k] for record in da2items]
+        return batched_result
 
-    def build_full_featured_product(self) -> None:
-        self.builder.produce_part_a()
-        self.builder.produce_part_b()
-        self.builder.produce_part_c()

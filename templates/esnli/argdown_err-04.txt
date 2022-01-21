@@ -1,0 +1,6 @@
+(1) {{ premise1 }}
+(2) {{ premise2 }}
+--
+with {{ scheme }} from (1)
+--
+(3) {{ conclusion }}

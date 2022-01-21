@@ -1,0 +1,1 @@
+{% for p in premises %}{{ p | lower }} {% endfor %}{% if conclusion %}therefore: {{ conclusion[0] | lower }}{% endif %}

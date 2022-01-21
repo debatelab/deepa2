@@ -5,3 +5,4 @@ dependencies:
   - pandas
   - ipykernel
   - jinja2
+  - datasets=1.17.0

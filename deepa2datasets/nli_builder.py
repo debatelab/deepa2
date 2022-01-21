@@ -9,17 +9,19 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from typing import Any,List,Dict
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
+
 
 @dataclass
 class eSNLIConfiguration():
     label:str
     argdown_template_path:str = "esnli/argdown_generic.txt"
+    argdown_err_template_path:str = None
+    source_paraphrase_template_path:str = "esnli/source_paraphrase.txt"
     scheme_name:str = "modus ponens"
     formal_scheme:List = field(default_factory=lambda: ["{p}","{p} -> {q}", "{q}"])
     placeholders:Dict = field(default_factory=lambda: {'p':"{premise}", "q":"{hypothesis}"})
     nl_scheme:List = field(default_factory=lambda: ["{{ premise }}", "{{ premise | conditional(hypothesis) }}", "{{ hypothesis }}"]) # Jinja templates
-
 
 
 class eSNLIBuilder(Builder):
@@ -28,6 +30,22 @@ class eSNLIBuilder(Builder):
     specific implementations of the building steps. Your program may have
     several variations of Builders, implemented differently.
     """
+
+    # list of errorneous argdown templates
+
+    argdown_err_templates = [
+        "esnli/argdown_err-01.txt",
+        "esnli/argdown_err-02.txt",
+        "esnli/argdown_err-03.txt",
+        "esnli/argdown_err-04.txt",
+        "esnli/argdown_err-05.txt",
+        "esnli/argdown_err-06.txt",
+        "esnli/argdown_err-07.txt",
+        "esnli/argdown_err-08.txt",
+        "esnli/argdown_err-09.txt",
+    ]
+
+    esnli_features = ["premise","hypothesis","label","explanation_1","explanation_2","explanation_3"]
 
     # stores argument configurations used for creating DeepA2 data records 
     configurations = {
@@ -110,9 +128,11 @@ class eSNLIBuilder(Builder):
         client code before disposing of the previous result.
         """
         product = self._product
+        product = [asdict(rec) for rec in product]
         self.reset()
         return product
 
+    ## currently used for testing only
     def fetch_input(self,input_dataset) -> Any:
         # DUMMY
         self._input = {
@@ -138,6 +158,68 @@ class eSNLIBuilder(Builder):
         }
         return None
 
+    def fetch_batch(self, input_batch) -> None:
+        """
+        Fetches items to be processed for building product from input batch.
+        """
+        ### sanity checks
+        # features present?
+        if not all(f in input_batch.keys() for f in self.esnli_features):
+            # TODO: use logger!
+            print(f"incomplete esnli batch with keys {str(list(input_batch.keys()))}.")
+            return None
+        # batch size = 3?
+        if not len(input_batch["label"])==3:
+            print(f"flawed esnli batch with batch size {len(input_batch['label'])}.")
+            return None
+        # three different labels?
+        if not set(input_batch["label"])=={"entailment", "neutral", "contradiction"}:
+            print(f"flawed esnli batch with labels {str(input_batch['label'])}.")
+            return None
+        # one and the same premise?
+        if not len(set(input_batch["premise"]))==1:
+            print(f"flawed esnli batch with different premises {str(input_batch['premise'])}.")
+            return None
+        # at least explanation1 given?
+        if any(e=='' for e in input_batch["explanation_1"]):
+            print(f"missing explanation for premise={str(input_batch['premise'][0])} (proceeding nonetheless).")
+
+
+        ### map to internal input format
+        idx = {label:i for i,label in enumerate(input_batch["label"])}
+        self._input = {
+            "p":   input_batch["premise"][0],
+            "he":  input_batch["hypothesis"][idx["entailment"]],
+            "hn":  input_batch["hypothesis"][idx["neutral"]],
+            "hc":  input_batch["hypothesis"][idx["contradiction"]],
+            "en": [
+                input_batch["explanation_1"][idx["neutral"]],
+                input_batch["explanation_2"][idx["neutral"]],
+                input_batch["explanation_3"][idx["neutral"]]
+            ],
+            "ee": [
+                input_batch["explanation_1"][idx["entailment"]],
+                input_batch["explanation_2"][idx["entailment"]],
+                input_batch["explanation_3"][idx["entailment"]]
+            ],
+            "ec": [
+                input_batch["explanation_1"][idx["contradiction"]],
+                input_batch["explanation_2"][idx["contradiction"]],
+                input_batch["explanation_3"][idx["contradiction"]]
+            ]
+        }
+
+        # fill in explanations in case they are missing
+        # we assume that "explanation_1" is given
+        for key in ["en","ee","ec"]:
+            for i in [1,2]:
+                if self._input[key][i] == "":
+                    self._input[key][i] = self._input[key][0]
+
+
+
+
+
     def configure_product(self) -> None:
         # populate product with configs
         i = 0
@@ -147,6 +229,7 @@ class eSNLIBuilder(Builder):
                 # distractor_mask specifies which distractors will be dropped in source text:
                 for distractor_mask in [[1,1],[1,0],[0,1],[0,0]]:
                     config = self.configurations[label][ i % len(self.configurations[label]) ]
+                    config.argdown_err_template_path = random.choice(self.argdown_err_templates)
                     metadata = {"config":config, "argument_mask":argument_mask, "distractor_mask":distractor_mask, "label":label}
                     deepa2record = DeepA2Item(metadata=metadata)
                     self._product.append(deepa2record)
@@ -185,8 +268,12 @@ class eSNLIBuilder(Builder):
         argdown_template = self._env.get_template(config.argdown_template_path)
         record.argdown_reconstruction = (argdown_template.render(premise1=argument_list[0],premise2=argument_list[1],conclusion=argument_list[-1],scheme=config.scheme_name))
         # erroneous argdown
+        argdown_err_template = self._env.get_template(config.argdown_err_template_path)
+        record.erroneous_argdown = (argdown_err_template.render(premise1=argument_list[0],premise2=argument_list[1],conclusion=argument_list[-1],scheme=config.scheme_name))
+        # title
         # TODO
-        
+        # context
+        # TODO
 
         ### Step 2: premises and conclusion lists
         # premises
@@ -261,6 +348,13 @@ class eSNLIBuilder(Builder):
 
 
 
+        ### Step 5: gist, source_paraphrase, context, title
+        # use premise2 as gist
+        record.gist = data["premise_cond"]
+        # source paraphrase
+        sp_template = self._env.get_template(config.source_paraphrase_template_path)
+        record.source_paraphrase = (sp_template.render(premises=[d.text for d in record.reason_statements],conclusion=[d.text for d in record.conclusion_statements]))
+        # title 
 
 
     def postprocess_da2item(self) -> None:
