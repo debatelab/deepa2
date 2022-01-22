@@ -5,6 +5,11 @@ import deepa2datasets.jinjafilters as jjfilters
 
 import random
 
+from datasets import load_dataset, Dataset, DatasetDict
+import pandas as pd
+from tqdm import tqdm
+tqdm.pandas()
+
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from typing import Any,List,Dict
@@ -46,6 +51,55 @@ class eSNLIBuilder(Builder):
     ]
 
     esnli_features = ["premise","hypothesis","label","explanation_1","explanation_2","explanation_3"]
+
+    def preprocess_esnli(dataset:Dataset) -> Dataset:
+        df_esnli = dataset.to_pandas()
+        df_esnli = df_esnli.drop_duplicates()
+        # count explanations per row
+        df_esnli["n_explanations"] = 3-df_esnli[['explanation_1','explanation_2','explanation_3']].eq("").sum(axis=1)
+        # keep records with at least one explanation
+        df_esnli = df_esnli[df_esnli.n_explanations.ge(1)]
+        # count how frequently premise occurs in the dataset (default = three times)
+        counts = df_esnli.groupby(["premise"]).size()
+        df_esnli["premise_counts"] = df_esnli.premise.progress_apply(lambda x: counts[x])
+        # drop records whose premise occurs less than 3 times
+        df_esnli = df_esnli[df_esnli.premise_counts.ge(3)]
+
+        # we split df in two parts which will be processed separately and are finally merged
+
+        ## Split 1
+        # get all rows whose premise occurs more than 3 times
+        df_esnli_tmp = df_esnli[df_esnli.premise_counts.gt(3)].copy()
+        df_esnli_tmp.reset_index(inplace=True)
+        # for each premise, what is the minimum number of labels?
+        df2 = df_esnli_tmp.groupby(["premise","label"]).size().unstack()
+        df2.fillna(0,inplace=True)
+        df_esnli_tmp["min_label_counts"] = df_esnli_tmp.premise.progress_apply(lambda x: int(df2.min(axis=1)[x]))     # df2.min(axis=1) tells us how many records for each premise will go into preprocessed esnli dataset
+        # make sure that for each premise, we have the same number of records for labels 0,1,2
+        df_esnli_tmp = df_esnli_tmp.groupby(["premise","label"],as_index=False).progress_apply(lambda x: x.iloc[:x.min_label_counts.iloc[0]])
+        # reorder row so as to obtain alternating labels
+        def reorder_premise_group(pg):
+            return pg.groupby("label").apply(lambda g: g.reset_index(drop=True)).sort_index(level=1)
+        df_esnli_tmp = df_esnli_tmp.groupby(["premise"],as_index=False).progress_apply(reorder_premise_group)
+
+        ## Split 2
+        # get all rows whose premise occurs exactly 3 times
+        df_esnli_tmp2 = df_esnli[df_esnli.premise_counts.eq(3)].copy()
+        # determine premises with incomplete labels (at least one label is missing)
+        labels_complete = df_esnli_tmp2.groupby(["premise"]).progress_apply(lambda g: len(set(g["label"]))==3)
+        df_esnli_tmp2["complete"] = df_esnli_tmp2.premise.progress_apply(lambda x: labels_complete[x])
+        # retain only complete records
+        df_esnli_tmp2 = df_esnli_tmp2[df_esnli_tmp2.complete]
+
+        ## Merge
+        df_esnli_final = pd.concat([
+            df_esnli_tmp2[eSNLIBuilder.esnli_features],
+            df_esnli_tmp[eSNLIBuilder.esnli_features]
+        ])
+        df_esnli_final.reset_index(drop=True,inplace=True)
+
+        return Dataset.from_pandas(df_esnli_final)
+
 
     # stores argument configurations used for creating DeepA2 data records 
     configurations = {
@@ -173,7 +227,7 @@ class eSNLIBuilder(Builder):
             print(f"flawed esnli batch with batch size {len(input_batch['label'])}.")
             return None
         # three different labels?
-        if not set(input_batch["label"])=={"entailment", "neutral", "contradiction"}:
+        if not set(input_batch["label"])=={0, 1, 2}:
             print(f"flawed esnli batch with labels {str(input_batch['label'])}.")
             return None
         # one and the same premise?
@@ -189,23 +243,23 @@ class eSNLIBuilder(Builder):
         idx = {label:i for i,label in enumerate(input_batch["label"])}
         self._input = {
             "p":   input_batch["premise"][0],
-            "he":  input_batch["hypothesis"][idx["entailment"]],
-            "hn":  input_batch["hypothesis"][idx["neutral"]],
-            "hc":  input_batch["hypothesis"][idx["contradiction"]],
+            "he":  input_batch["hypothesis"][idx[0]],
+            "hn":  input_batch["hypothesis"][idx[1]],
+            "hc":  input_batch["hypothesis"][idx[2]],
             "en": [
-                input_batch["explanation_1"][idx["neutral"]],
-                input_batch["explanation_2"][idx["neutral"]],
-                input_batch["explanation_3"][idx["neutral"]]
+                input_batch["explanation_1"][idx[1]],
+                input_batch["explanation_2"][idx[1]],
+                input_batch["explanation_3"][idx[1]]
             ],
             "ee": [
-                input_batch["explanation_1"][idx["entailment"]],
-                input_batch["explanation_2"][idx["entailment"]],
-                input_batch["explanation_3"][idx["entailment"]]
+                input_batch["explanation_1"][idx[0]],
+                input_batch["explanation_2"][idx[0]],
+                input_batch["explanation_3"][idx[0]]
             ],
             "ec": [
-                input_batch["explanation_1"][idx["contradiction"]],
-                input_batch["explanation_2"][idx["contradiction"]],
-                input_batch["explanation_3"][idx["contradiction"]]
+                input_batch["explanation_1"][idx[2]],
+                input_batch["explanation_2"][idx[2]],
+                input_batch["explanation_3"][idx[2]]
             ]
         }
 
