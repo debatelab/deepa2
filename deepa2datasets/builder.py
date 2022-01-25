@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any,List,Dict
 
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
 
 @dataclass
@@ -63,7 +63,6 @@ class DeepA2Item():
     misc_placeholders:List[str] = None
 
     distractors:List[str] = None
-    id:str = "123-456"
     metadata:Dict = None
 
     
@@ -77,14 +76,10 @@ class Builder(ABC):
 
     @property
     @abstractmethod
-    def product(self) -> None:
-        pass
-
-    @abstractmethod
-    def fetch_input(self,input_data) -> Any:
+    def product(self) -> List[Dict]:
         """
-        Fetches items to be processed for building next product and returns 
-        dataset with remaining input items which will be processed later.
+        The product of any builder is a list of DeepA2Items, 
+        each rendered as a dictionary.
         """
         pass
 
@@ -139,15 +134,17 @@ class Director:
         """
         self._builder = builder
 
-    """
-    The Director provides a function that can me mapped over a dataset (accepting batches).
-    """
 
     def transform(self,batched_input:Dict[List]) -> Dict[List]:
+        """
+        The Director provides a function that can me mapped over a dataset (accepting batches).
+        """
         self.builder.fetch_batch(batched_input)
         self.builder.configure_product()
         self.builder.produce_da2item()
-        da2items = self.builder.product # list of dicts
+        self.builder.postprocess_da2item()
+        self.builder.add_metadata_da2item()
+        da2items = self.builder.product # product is a list of dicts
         # transpose to dict of lists
         batched_result = {}
         for k in da2items[0].keys():

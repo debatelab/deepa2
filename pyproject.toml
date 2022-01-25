@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "deepa2datasets"
+version = "0.1.0"
+description = "Apps for casting NLP data as multiangular datasets compatible with the DeepA2 framework"
+authors = ["Gregor Betz <gregor.betz@kit.edu>"]
+license = "CC BY 4.0"
+readme = "README.md"
+
+[tool.poetry.scripts]
+build-nli = "deepa2datasets.scripts.build_nli:app"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+pandas = "^1.4.0"
+numpy = "^1.22.1"
+typer = {extras = ["all"], version = "^0.4.0"}
+datasets = "^1.18.0"
+Jinja2 = "^3.0.3"
+ipykernel = "^6.7.0"
+pyarrow = "^6.0.1"
+
+[tool.poetry.dev-dependencies]
+pytest = "^6.2.5"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"

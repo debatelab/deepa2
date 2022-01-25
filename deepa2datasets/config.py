@@ -1,7 +1,7 @@
 # config.py
 
-from pathlib import Path  # pathlib is seriously awesome!
+from pathlib import Path 
 
-template_dir = Path('../templates')
-data_dir = Path('/path/to/some/logical/parent/dir')
-data_path = data_dir / 'my_file.csv'  # use feather files if possible!!!
+package_dir = Path(__file__).parent.resolve()
+template_dir:Path = Path(package_dir,'..','templates').resolve()
+data_dir:Path = Path(package_dir,'..','data').resolve()
