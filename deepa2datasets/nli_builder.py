@@ -44,7 +44,7 @@ class eSNLIConfiguration():
     def nl_scheme(self):
         placeholders = {k:v.strip("{}") for k,v in self.placeholders.items()}
         nl_scheme = [self._nl_schemes_dict[s].format(**placeholders) for s in self.formal_scheme]
-        nl_scheme = ["{"+s+"}" for s in nl_scheme] # postprocess: re-add {}
+        nl_scheme = ["{"+s+"}" for s in nl_scheme] # postprocess: re-add {} which got lost in previous format() call
         assert all((s[:2]=="{{" and s[-2:]=="}}") for s in nl_scheme) # jinja2 templates?
         return nl_scheme
 
