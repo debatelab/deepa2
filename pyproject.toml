@@ -8,6 +8,7 @@ readme = "README.md"
 
 [tool.poetry.scripts]
 build-nli = "deepa2datasets.scripts.build_nli:app"
+build-aifdb = "deepa2datasets.scripts.build_aifdb:app"
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -18,9 +19,12 @@ datasets = "^1.18.0"
 Jinja2 = "^3.0.3"
 ipykernel = "^6.7.0"
 pyarrow = "^6.0.1"
+requests = "^2.27.1"
+networkx = "^2.6.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"
+matplotlib = "^3.5.1"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

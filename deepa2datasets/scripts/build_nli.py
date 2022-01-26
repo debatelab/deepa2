@@ -41,7 +41,7 @@ def esnli(export_path: Optional[str] = None, debug_mode: Optional[bool] = False)
     # preprocess each split
     for split in dataset.keys():
         logging.info(f"Preprocessing esnli split {split} ...")
-        dataset[split] = eSNLIBuilder.preprocess_esnli(dataset[split])
+        dataset[split] = eSNLIBuilder.preprocess(dataset[split])
     logging.info(f"Preprocessed esnli dataset: {dataset}")
 
     # transform (batches of size three with <E,C,N>)
@@ -63,17 +63,12 @@ def esnli(export_path: Optional[str] = None, debug_mode: Optional[bool] = False)
             new_dataset[split].to_parquet(path / split / file_name)
         logging.info(f"Saved esnli deepa2 dataset to {path}.")
 
-
-
-
 @app.command()
-def bye(name: Optional[str] = None):
-    """Dummy function to test typer"""
-
-    if name:
-        typer.echo(f"Bye {name}")
+def goodbye(name: str, formal: bool = False):
+    if formal:
+        typer.echo(f"Goodbye Ms. {name}. Have a good day.")
     else:
-        typer.echo("Goodbye!")
+        typer.echo(f"Bye {name}!")
 
 
 if __name__ == "__main__":

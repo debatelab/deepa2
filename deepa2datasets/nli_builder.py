@@ -11,7 +11,6 @@ from tqdm import tqdm
 tqdm.pandas()
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
-from fnmatch import fnmatch
 
 from typing import Any,List,Dict
 from pathlib import Path
@@ -72,7 +71,7 @@ class eSNLIBuilder(Builder):
 
     esnli_features = ["premise","hypothesis","label","explanation_1","explanation_2","explanation_3"]
 
-    def preprocess_esnli(dataset:Dataset) -> Dataset:
+    def preprocess(dataset:Dataset) -> Dataset:
         df_esnli = dataset.to_pandas()
         df_esnli = df_esnli.drop_duplicates()
         # count explanations per row

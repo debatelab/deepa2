@@ -4,6 +4,9 @@ from typing import Any,List,Dict
 
 from dataclasses import dataclass
 
+from datasets import Dataset
+
+
 
 @dataclass
 class QuotedStatement():
@@ -74,6 +77,15 @@ class Builder(ABC):
     the Product objects.
     """
 
+    @staticmethod
+    @abstractmethod
+    def preprocess(dataset:Dataset) -> Dataset:
+        """
+        Preprocesses the dataset.
+        """
+        pass
+
+
     @property
     @abstractmethod
     def product(self) -> List[Dict]:
@@ -104,6 +116,14 @@ class Builder(ABC):
 
     @abstractmethod
     def add_metadata_da2item(self) -> None:
+        pass
+
+    @abstractmethod
+    def product(self) -> List[Dict]:
+        """
+        The product of any builder is a list of DeepA2Items, 
+        each rendered as a dictionary.
+        """
         pass
 
 
