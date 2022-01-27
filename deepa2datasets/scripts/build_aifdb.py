@@ -21,7 +21,9 @@ app = typer.Typer()
 
 
 def build_from_aifdb(aifdb_config, export_path: Optional[str] = None, debug_mode: Optional[bool] = False):
-    """Exports all corpora contained (as subdirectories) in aifdb_dir as a single deepa2 dataset"""
+    """
+    Exports all corpora contained (as subdirectories) in aifdb_dir as a single deepa2 dataset
+    """
     
     logging.info(f"#################################################################")
     logging.info(f"Starting new aifdb transformation: {datetime.datetime.now()}")
@@ -73,7 +75,7 @@ def build_from_aifdb(aifdb_config, export_path: Optional[str] = None, debug_mode
     logging.info(f"Preprocessed aifdb dataset {aifdb_dir.name}: {dataset}")
 
     # transform 
-    new_dataset = dataset.map(director.transform, batched=True, batch_size=1)
+    new_dataset = dataset.map(director.transform, batched=True, batch_size=1, remove_columns=dataset.column_names)
     logging.info(f"Created new aifdb deepa2 dataset: {new_dataset}")
 
     # remove metadata
@@ -92,14 +94,16 @@ def build_from_aifdb(aifdb_config, export_path: Optional[str] = None, debug_mode
             file_path = Path(export_path, aifdb_dir.name, split_name, f"{split_name}.parquet")
             logging.info(f"Saving split {file_path} ...")
             file_path.parent.mkdir(parents=True, exist_ok=True) # create dirs if necessary
-            new_dataset.select(range(split_range)).to_parquet(file_path)
+            new_dataset.select(range(*split_range)).to_parquet(file_path)
         logging.info(f"Saved aifdb deepa2 dataset {aifdb_dir.name}.")
 
 
 
 @app.command()
 def moral_maze(export_path: Optional[str] = None, debug_mode: Optional[bool] = False):
-    """Reads aifdb moral maze corpora, preprocesses dataset, and builds da2-moralmaze"""
+    """
+    Loads aifdb moral maze corpora, preprocesses dataset, and builds da2-moralmaze.
+    """
     aifdb_config = moral_maze_config
     build_from_aifdb(aifdb_config=aifdb_config, export_path=export_path, debug_mode=debug_mode)
 

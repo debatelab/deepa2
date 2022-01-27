@@ -60,11 +60,11 @@ class AIFDBBuilder(Builder):
                 inference_nodes = [n for n in G.nodes if node_type[n] in ["CA","RA"]]
                 # each inference node gives rise to a separate chunk
                 for inference_node in inference_nodes:
-                    # get conclusion
+                    # get conclusion (ids)
                     conclusions = [n for n in G.successors(inference_node) if node_type[n]=="I"]
-                    # get premises
+                    # get premises (ids)
                     premises = [n for n in G.predecessors(inference_node) if node_type[n]=="I"]
-                    # get conjectures and reasons
+                    # get conjectures and reasons (ids)
                     def get_L_grandparent(node):
                         if node_type[node]!="I":
                             return None
@@ -73,8 +73,17 @@ class AIFDBBuilder(Builder):
                             return None
                         l_grandparents = [n for m in ya_predecessors for n in G.predecessors(m) if node_type[n]=="L" and node_text[n]!="analyses"]
                         return l_grandparents
-                    conjectures = sorted([get_L_grandparent(n) for n in conclusions])
-                    reasons = sorted([get_L_grandparent(n) for n in premises])
+                    conjectures = [get_L_grandparent(n) for n in conclusions]
+                    conjectures = [x for l in conjectures for x in l] # flatten 
+                    conjectures = sorted(conjectures) # sort, ids correspond to location in text 
+                    reasons = [get_L_grandparent(n) for n in premises]
+                    reasons = [x for l in reasons for x in l] # flatten 
+                    reasons = sorted(reasons) # sort, ids correspond to location in text
+                    # subst text for ids
+                    conjectures = [node_text[n] for n in conjectures] 
+                    reasons = [node_text[n] for n in reasons] 
+                    conclusions = [node_text[n] for n in conclusions] 
+                    premises = [node_text[n] for n in premises] 
                     # create new record
                     inference_chunks["text"].append(examples["text"][i])
                     inference_chunks["corpus"].append(examples["corpus"][i])

@@ -1,0 +1,1 @@
+{% for p in premises %}{{ p }} {% endfor %}{% if conclusion %}In consequence: {{ conclusion[0] }}{% endif %}

@@ -1,0 +1,1 @@
+{% for p in premises %}{{ p }} {% endfor %}{% if conclusion %}All of which speaks against: {{ conclusion[0] }}{% endif %}
