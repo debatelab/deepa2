@@ -1,6 +1,6 @@
 from deepa2datasets.builder import ArgdownStatement, Builder, QuotedStatement
 from deepa2datasets.builder import DeepA2Item
-from deepa2datasets.config import template_dir,package_dir
+from deepa2datasets.config import template_dir, package_dir, moral_maze_config
 import deepa2datasets.jinjafilters as jjfilters
 
 import random
@@ -98,16 +98,17 @@ class AIFDBBuilder(Builder):
         used in further assembly.
         """
         # check whether template files are accessible
-        #if not (template_dir / "esnli").exists():
-        #    logging.debug(f"Package dir: {package_dir}")
-        #    logging.debug(f"Resolve template dir: {template_dir}")
-        #    logging.debug(f"List template dir: {list(template_dir.glob('*'))}")
-        #    err_m = f'No "esnli" subdirectory in template_dir {template_dir.resolve()}'
-        #    raise ValueError(err_m)
-        #self._env = Environment(
-        #    loader = FileSystemLoader(template_dir),
-        #    autoescape=select_autoescape()
-        #)
+        if not (template_dir / "aifdb").exists():
+            logging.debug(f"Package dir: {package_dir}")
+            logging.debug(f"Resolve template dir: {template_dir}")
+            logging.debug(f"List template dir: {list(template_dir.glob('*'))}")
+            err_m = f'No "aifdb" subdirectory in template_dir {template_dir.resolve()}'
+            raise ValueError(err_m)
+        self._env = Environment(
+            loader = FileSystemLoader(template_dir),
+            autoescape=select_autoescape()
+        )
+
 
         self.reset()
 
@@ -145,16 +146,24 @@ class AIFDBBuilder(Builder):
         ### sanity checks
         # features present?
         if not all(f in input_batch.keys() for f in self.preprocessed_aifdb_features):
-            logging.warning(f"incomplete aifdb batch with keys {str(list(input_batch.keys()))}.")
+            logging.warning(f"Incomplete aifdb batch with keys {str(list(input_batch.keys()))}.")
             return None
 
         self._input = input_batch
 
 
-
-
     def configure_product(self) -> None:
-        pass
+        # create empty DeepA2Items and store them in _product
+        for i,_ in enumerate(self._input.get(self.preprocessed_aifdb_features[0])):
+            itype = self._input['type'][i]
+            sp_template = random.choice(moral_maze_config["templates_sp_ra"] if itype=="RA" else moral_maze_config["templates_sp_ca"])
+            metadata = {
+                "corpus": self._input['corpus'][i],
+                "type": itype,
+                "config": {'sp_template':sp_template}
+            }
+            self._product.append(DeepA2Item(metadata=metadata))
+
 
     def produce_da2item(self) -> None:
         for i,_ in enumerate(self._product):
@@ -162,9 +171,15 @@ class AIFDBBuilder(Builder):
 
 
     def populate_record(self,i) -> None:
+        inputr = {k:v[i] for k,v in self._input.items()}
         record = self._product[i]
-        # choose template for paraphrased source according to type of relation between premise and conclusion
-        pass
+        record.argument_source = inputr["text"]
+        record.reason_statements = [QuotedStatement(text=r,starts_at=None,ref_reco=e) for e,r in enumerate(inputr['reasons'])]
+        record.conclusion_statements = [QuotedStatement(text=j,starts_at=None,ref_reco=len(record.reason_statements)+1) for j in inputr['conjectures']]
+        # source paraphrase
+        sp_template = self._env.get_template(record.metadata["config"]["sp_template"])
+        record.source_paraphrase = (sp_template.render(premises=[d.text for d in record.reason_statements],conclusion=[d.text for d in record.conclusion_statements]))
+
 
 
     def postprocess_da2item(self) -> None:

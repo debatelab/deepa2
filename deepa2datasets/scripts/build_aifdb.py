@@ -51,9 +51,7 @@ def build_from_aifdb(aifdb_config, export_path: Optional[str] = None, debug_mode
     # load aifdb dataset from disk
     data = {"nodeset":[],"text":[],"corpus":[]}
     for corpus_dir in aifdb_dir.iterdir():
-        logging.debug(corpus_dir)
         if corpus_dir.is_dir():
-            logging.debug(corpus_dir)
             for nodefile in corpus_dir.iterdir():
                 if nodefile.suffix == '.json':
                     textfile = nodefile.parent / (nodefile.stem + ".txt")
@@ -75,7 +73,7 @@ def build_from_aifdb(aifdb_config, export_path: Optional[str] = None, debug_mode
     logging.info(f"Preprocessed aifdb dataset {aifdb_dir.name}: {dataset}")
 
     # transform 
-    new_dataset = dataset.map(director.transform)
+    new_dataset = dataset.map(director.transform, batched=True, batch_size=1)
     logging.info(f"Created new aifdb deepa2 dataset: {new_dataset}")
 
     # remove metadata

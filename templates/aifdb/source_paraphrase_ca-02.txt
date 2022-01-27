@@ -1,0 +1,1 @@
+{% for p in premises %}{{ p }} {% endfor %}{% if conclusion %}Therefore, it is not the case: {{ conclusion[0] }}{% endif %}
