@@ -1,10 +1,10 @@
 # build_nli.py
 
 import logging 
-logging.basicConfig(filename='nli_builder.log', level=logging.INFO)
+logging.basicConfig(filename='nli_builder.log', level=logging.DEBUG)
 
 from deepa2datasets.builder import Director
-from deepa2datasets.nli_builder import eSNLIBuilder
+from deepa2datasets.nli_builder import eSNLIBuilder, PreprocessedESNLIExample
 
 from pathlib import Path
 import datetime
@@ -44,8 +44,8 @@ def esnli(export_path: Optional[str] = None, debug_mode: Optional[bool] = False)
         dataset[split] = eSNLIBuilder.preprocess(dataset[split])
     logging.info(f"Preprocessed esnli dataset: {dataset}")
 
-    # transform (batches of size three with <E,C,N>)
-    new_dataset = dataset.map(director.transform, batched=True, batch_size=3, remove_columns=builder.esnli_features)
+    # transform
+    new_dataset = dataset.map(director.transform, batched=True, batch_size=1, remove_columns=list(PreprocessedESNLIExample.__annotations__.keys()))
     logging.info(f"Created new esnli deepa2 dataset: {new_dataset}")
 
     # remove metadata

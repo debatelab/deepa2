@@ -12,12 +12,31 @@ tqdm.pandas()
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from typing import Any,List,Dict
+from typing import Any, List, Dict, TypedDict, Union
 from pathlib import Path
 import uuid
 import logging
 
 from dataclasses import dataclass, field, asdict
+
+
+class RawESNLIExample(TypedDict):
+     premise:Union[str,List[str]]
+     hypothesis:Union[str,List[str]]
+     label:Union[str,List[str]]
+     explanation_1:Union[str,List[str]]
+     explanation_2:Union[str,List[str]]
+     explanation_3:Union[str,List[str]]
+
+
+class PreprocessedESNLIExample(TypedDict):
+    premise:Union[str,List[str]]  
+    hypothesis_ent:Union[str,List[str]]
+    hypothesis_neu:Union[str,List[str]]
+    hypothesis_con:Union[str,List[str]]
+    explanation_ent:Union[List[str],List[Any]]
+    explanation_neu:Union[List[str],List[Any]]
+    explanation_con:Union[List[str],List[Any]]
 
 
 @dataclass
@@ -69,7 +88,6 @@ class eSNLIBuilder(Builder):
         "esnli/argdown_err-09.txt",
     ]
 
-    esnli_features = ["premise","hypothesis","label","explanation_1","explanation_2","explanation_3"]
 
     def preprocess(dataset:Dataset) -> Dataset:
         df_esnli = dataset.to_pandas()
@@ -118,8 +136,8 @@ class eSNLIBuilder(Builder):
 
         ## Merge
         df_esnli_final = pd.concat([
-            df_esnli_tmp2[eSNLIBuilder.esnli_features],
-            df_esnli_tmp[eSNLIBuilder.esnli_features]
+            df_esnli_tmp2[list(RawESNLIExample.__annotations__.keys())],
+            df_esnli_tmp[list(RawESNLIExample.__annotations__.keys())]
         ])
         df_esnli_final.reset_index(drop=True,inplace=True)
 
@@ -130,7 +148,70 @@ class eSNLIBuilder(Builder):
             assert len(set(triple.premise))==1
             assert len(set(triple.label))==3
 
-        return Dataset.from_pandas(df_esnli_final)
+        ## we now merge any three raw items into a single record
+        dataset = Dataset.from_pandas(df_esnli_final)
+
+        def merge_triple_batches(examples:RawESNLIExample) -> PreprocessedESNLIExample:
+            ### sanity checks
+            # features present?
+            if not all(f in examples.keys() for f in RawESNLIExample.__annotations__.keys()):
+                logging.warning(f"incomplete esnli batch with keys {str(list(examples.keys()))}.")
+                return None
+            # batch size = 3?
+            if not len(examples["label"])==3:
+                logging.warning(f"flawed esnli batch with batch size {len(examples['label'])}.")
+                return None
+            # three different labels?
+            if not set(examples["label"])=={0, 1, 2}:
+                logging.warning(f"flawed esnli batch with labels {str(examples['label'])}.")
+                return None
+            # one and the same premise?
+            if not len(set(examples["premise"]))==1:
+                logging.warning(f"flawed esnli batch with different premises {str(examples['premise'])}.")
+                return None
+            # at least explanation1 given?
+            if any(e=='' for e in examples["explanation_1"]):
+                logging.warning(f"missing explanation for premise={str(examples['premise'][0])} (proceeding nonetheless).")
+
+            ### map to PreprocessedESNLIExample format
+            idx = {label:i for i,label in enumerate(examples["label"])}
+            preprocessed_example:PreprocessedESNLIExample = {
+                "premise":   examples["premise"][0],
+                "hypothesis_ent":  examples["hypothesis"][idx[0]],
+                "hypothesis_neu":  examples["hypothesis"][idx[1]],
+                "hypothesis_con":  examples["hypothesis"][idx[2]],
+                "explanation_ent": [
+                    examples["explanation_1"][idx[0]],
+                    examples["explanation_2"][idx[0]],
+                    examples["explanation_3"][idx[0]]
+                ],
+                "explanation_neu": [
+                    examples["explanation_1"][idx[1]],
+                    examples["explanation_2"][idx[1]],
+                    examples["explanation_3"][idx[1]]
+                ],
+                "explanation_con": [
+                    examples["explanation_1"][idx[2]],
+                    examples["explanation_2"][idx[2]],
+                    examples["explanation_3"][idx[2]]
+                ]
+            }
+
+            # fill in explanations in case they are missing
+            # we assume that "explanation_1" is given
+            for key in ["explanation_ent","explanation_neu","explanation_con"]:
+                for i in [1,2]:
+                    if preprocessed_example[key][i] == "":
+                        preprocessed_example[key][i] = preprocessed_example[key][0]
+
+            # batch (with batchsize=1)
+            preprocessed_example = {k:[v] for k,v in preprocessed_example.items()}
+
+            return preprocessed_example
+
+        dataset = dataset.map(merge_triple_batches, batched=True, batch_size=3, remove_columns=dataset.column_names)
+
+        return dataset
 
 
     # stores argument configurations used for creating DeepA2 data records 
@@ -196,93 +277,20 @@ class eSNLIBuilder(Builder):
 
         self.reset()
 
-    def reset(self) -> None:
-        self._input = {}
-        self._product:List[DeepA2Item] = []
 
     @property
-    def product(self) -> List[Dict]:
+    def input(self) -> PreprocessedESNLIExample:
         """
-        Concrete Builders are supposed to provide their own methods for
-        retrieving results. That's because various types of builders may create
-        entirely different products that don't follow the same interface.
-        Therefore, such methods cannot be declared in the base Builder interface
-        (at least in a statically typed programming language).
-
-        Usually, after returning the end result to the client, a builder
-        instance is expected to be ready to start producing another product.
-        That's why it's a usual practice to call the reset method at the end of
-        the `getProduct` method body. However, this behavior is not mandatory,
-        and you can make your builders wait for an explicit reset call from the
-        client code before disposing of the previous result.
+        The input of any builder is a proprocessed example
         """
-        product = self._product
-        product = [asdict(rec) for rec in product]
-        self.reset()
-        return product
+        return self._input
 
-
-
-    def fetch_batch(self, input_batch) -> None:
+    @input.setter
+    def input(self, preprocessed_example: PreprocessedESNLIExample) -> None:
         """
-        Fetches items to be processed for building product from input batch.
+        Sets input for building next product.
         """
-        ### sanity checks
-        # features present?
-        if not all(f in input_batch.keys() for f in self.esnli_features):
-            logging.warning(f"incomplete esnli batch with keys {str(list(input_batch.keys()))}.")
-            return None
-        # batch size = 3?
-        if not len(input_batch["label"])==3:
-            logging.warning(f"flawed esnli batch with batch size {len(input_batch['label'])}.")
-            return None
-        # three different labels?
-        if not set(input_batch["label"])=={0, 1, 2}:
-            logging.warning(f"flawed esnli batch with labels {str(input_batch['label'])}.")
-            return None
-        # one and the same premise?
-        if not len(set(input_batch["premise"]))==1:
-            logging.warning(f"flawed esnli batch with different premises {str(input_batch['premise'])}.")
-            return None
-        # at least explanation1 given?
-        if any(e=='' for e in input_batch["explanation_1"]):
-            logging.warning(f"missing explanation for premise={str(input_batch['premise'][0])} (proceeding nonetheless).")
-
-
-        ### map to internal input format
-        idx = {label:i for i,label in enumerate(input_batch["label"])}
-        self._input = {
-            "p":   input_batch["premise"][0],
-            "he":  input_batch["hypothesis"][idx[0]],
-            "hn":  input_batch["hypothesis"][idx[1]],
-            "hc":  input_batch["hypothesis"][idx[2]],
-            "en": [
-                input_batch["explanation_1"][idx[1]],
-                input_batch["explanation_2"][idx[1]],
-                input_batch["explanation_3"][idx[1]]
-            ],
-            "ee": [
-                input_batch["explanation_1"][idx[0]],
-                input_batch["explanation_2"][idx[0]],
-                input_batch["explanation_3"][idx[0]]
-            ],
-            "ec": [
-                input_batch["explanation_1"][idx[2]],
-                input_batch["explanation_2"][idx[2]],
-                input_batch["explanation_3"][idx[2]]
-            ]
-        }
-
-        # fill in explanations in case they are missing
-        # we assume that "explanation_1" is given
-        for key in ["en","ee","ec"]:
-            for i in [1,2]:
-                if self._input[key][i] == "":
-                    self._input[key][i] = self._input[key][0]
-
-
-
-
+        self._input = {k:v[0] for k,v in preprocessed_example.items()}
 
     def configure_product(self) -> None:
         # populate product with configs
@@ -299,7 +307,6 @@ class eSNLIBuilder(Builder):
                     self._product.append(deepa2record)
                     i += 1
 
-
     def produce_da2item(self) -> None:
         for i,_ in enumerate(self._product):
             self.populate_record(i)
@@ -312,17 +319,17 @@ class eSNLIBuilder(Builder):
         ### Initialize: mapping input data to argumentative roles
         if record.metadata["label"] == "entailment":
             data = {
-                "premise": self._input["p"],
-                "hypothesis": self._input["he"],
-                "premise_cond": self._input["ee"][i%3], # used in source text
-                "distractors": [self._input["hn"],self._input["ec"][i%3]], # used in source text
+                "premise": self.input["premise"],
+                "hypothesis": self.input["hypothesis_ent"],
+                "premise_cond": self.input["explanation_ent"][i%3], # used in source text
+                "distractors": [self.input["hypothesis_neu"],self.input["explanation_con"][i%3]], # used in source text
             }
         else: # label == contradiction
             data = {
-                "premise": self._input["p"],
-                "hypothesis": self._input["hc"],
-                "premise_cond": self._input["ec"][i%3], # used in source text
-                "distractors": [self._input["hn"],self._input["ee"][i%3]], # used in source text
+                "premise": self.input["premise"],
+                "hypothesis": self.input["hypothesis_con"],
+                "premise_cond": self.input["explanation_con"][i%3], # used in source text
+                "distractors": [self.input["hypothesis_neu"],self.input["explanation_ent"][i%3]], # used in source text
             }
 
 

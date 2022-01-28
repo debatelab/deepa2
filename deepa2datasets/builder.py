@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any,List,Dict
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 
 from datasets import Dataset
 
@@ -85,22 +85,36 @@ class Builder(ABC):
         """
         pass
 
-
     @property
-    @abstractmethod
     def product(self) -> List[Dict]:
         """
         The product of any builder is a list of DeepA2Items, 
-        each rendered as a dictionary.
+        rendered as dicts
+        """
+        product = self._product
+        product = [asdict(deepa2item) for deepa2item in product]
+        self.reset()
+        return product
+
+    def reset(self) -> None:
+        self._product:List[DeepA2Item] = []
+
+
+    @property
+    @abstractmethod
+    def input(self) -> Any:
+        """
+        The input of any builder is a proprocessed example
         """
         pass
 
+    @input.setter
     @abstractmethod
-    def fetch_batch(self, input_batch) -> None:
+    def input(self, preprocessed_example: Any) -> None:
         """
-        Fetches items to be processed for building from batch.
+        Sets input for building next product.
         """
-        pass
+        self._input = preprocessed_example
 
     @abstractmethod
     def configure_product(self) -> None:
@@ -118,13 +132,6 @@ class Builder(ABC):
     def add_metadata_da2item(self) -> None:
         pass
 
-    @abstractmethod
-    def product(self) -> List[Dict]:
-        """
-        The product of any builder is a list of DeepA2Items, 
-        each rendered as a dictionary.
-        """
-        pass
 
 
 
@@ -157,9 +164,13 @@ class Director:
 
     def transform(self,batched_input:Dict[List]) -> Dict[List]:
         """
-        The Director provides a function that can me mapped over a dataset (accepting batches).
+        The Director provides a function that can me mapped over a dataset (requiring batches of size 1).
         """
-        self.builder.fetch_batch(batched_input)
+        if any(len(v)!=1 for v in batched_input.values()):
+            raise ValueError("Director.transform() can only handle batches of size 1.")
+        if len(set(len(v) for v in batched_input.values()))>1:
+            raise ValueError("Director.transform(): batched_input is not of uniform length.")
+        self.builder.input = batched_input
         self.builder.configure_product()
         self.builder.produce_da2item()
         self.builder.postprocess_da2item()

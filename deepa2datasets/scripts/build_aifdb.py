@@ -57,9 +57,10 @@ def build_from_aifdb(aifdb_config, export_path: Optional[str] = None, debug_mode
             for nodefile in corpus_dir.iterdir():
                 if nodefile.suffix == '.json':
                     textfile = nodefile.parent / (nodefile.stem + ".txt")
-                    data["nodeset"].append(json.load(nodefile.open()))
-                    data["text"].append("".join(textfile.open().readlines()))
-                    data["corpus"].append(corpus_dir.name)
+                    if textfile.exists():
+                        data["nodeset"].append(json.load(nodefile.open()))
+                        data["text"].append("".join(textfile.open().readlines()))
+                        data["corpus"].append(corpus_dir.name)
     dataset = Dataset.from_dict(data)
     logging.info(f"Loaded aifdb dataset: {dataset}")
     
