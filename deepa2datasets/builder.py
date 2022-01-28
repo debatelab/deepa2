@@ -1,11 +1,17 @@
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any,List,Dict
+from typing import Any,List,Dict,TypedDict
 
 from dataclasses import dataclass, asdict
 
 from datasets import Dataset
 
+
+class RawExample(TypedDict):
+    pass
+
+class PreprocessedExample(TypedDict):
+    pass
 
 
 @dataclass
@@ -102,7 +108,7 @@ class Builder(ABC):
 
     @property
     @abstractmethod
-    def input(self) -> Any:
+    def input(self) -> PreprocessedExample:
         """
         The input of any builder is a proprocessed example
         """
@@ -110,7 +116,7 @@ class Builder(ABC):
 
     @input.setter
     @abstractmethod
-    def input(self, preprocessed_example: Any) -> None:
+    def input(self, preprocessed_example: PreprocessedExample) -> None:
         """
         Sets input for building next product.
         """

@@ -1,5 +1,5 @@
 # build_nli.py
-
+from __future__ import annotations
 import logging 
 logging.basicConfig(filename='nli_builder.log', level=logging.DEBUG)
 

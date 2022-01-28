@@ -1,7 +1,8 @@
-from deepa2datasets.builder import ArgdownStatement, Builder, QuotedStatement
+from __future__ import annotations
+
+from deepa2datasets.builder import Builder, QuotedStatement, PreprocessedExample, RawExample
 from deepa2datasets.builder import DeepA2Item
 from deepa2datasets.config import template_dir, package_dir, moral_maze_config
-import deepa2datasets.jinjafilters as jjfilters
 
 import random
 
@@ -15,20 +16,17 @@ import networkx as nx
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import re
 
-from typing import Any,List,Dict,TypedDict,Union
-from pathlib import Path
-import uuid
+from typing import Any,List,Dict,Union
 import logging
 
-from dataclasses import dataclass, field, asdict
 
 
-class RawAIFDBExample(TypedDict):
+class RawAIFDBExample(RawExample):
     nodeset:Union[str,List[str]]
     text:Union[str,List[str]]
     corpus:Union[str,List[str]]
 
-class PreprocessedAIFDBExample(TypedDict):
+class PreprocessedAIFDBExample(PreprocessedExample):
     text:Union[str,List[str]]  
     corpus:Union[str,List[str]]
     type:Union[str,List[str]]
@@ -36,7 +34,6 @@ class PreprocessedAIFDBExample(TypedDict):
     conjectures:Union[List[str],List[Any]]
     premises:Union[List[str],List[Any]]
     conclusions:Union[List[str],List[Any]]
-
 
 
 class AIFDBBuilder(Builder):

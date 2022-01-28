@@ -1,4 +1,6 @@
-from deepa2datasets.builder import ArgdownStatement, Builder, Formalization, QuotedStatement
+from __future__ import annotations
+
+from deepa2datasets.builder import ArgdownStatement, Builder, Formalization, PreprocessedExample, QuotedStatement, RawExample
 from deepa2datasets.builder import DeepA2Item
 from deepa2datasets.config import template_dir,package_dir
 import deepa2datasets.jinjafilters as jjfilters
@@ -12,7 +14,7 @@ tqdm.pandas()
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from typing import Any, List, Dict, TypedDict, Union
+from typing import Any, List, Dict, Union
 from pathlib import Path
 import uuid
 import logging
@@ -20,16 +22,23 @@ import logging
 from dataclasses import dataclass, field, asdict
 
 
-class RawESNLIExample(TypedDict):
-     premise:Union[str,List[str]]
-     hypothesis:Union[str,List[str]]
-     label:Union[str,List[str]]
-     explanation_1:Union[str,List[str]]
-     explanation_2:Union[str,List[str]]
-     explanation_3:Union[str,List[str]]
+class RawESNLIExample(RawExample):
+    """
+    Datatype describing a raw, unprocessed example
+    in a e-snli dataset. 
+    """
+    premise:Union[str,List[str]]
+    hypothesis:Union[str,List[str]]
+    label:Union[str,List[str]]
+    explanation_1:Union[str,List[str]]
+    explanation_2:Union[str,List[str]]
+    explanation_3:Union[str,List[str]]
 
 
-class PreprocessedESNLIExample(TypedDict):
+class PreprocessedESNLIExample(PreprocessedExample):
+    """
+    Datatype describing a preprocessed e-snli example. 
+    """
     premise:Union[str,List[str]]  
     hypothesis_ent:Union[str,List[str]]
     hypothesis_neu:Union[str,List[str]]
@@ -58,25 +67,8 @@ class eSNLIConfiguration():
         "{p} -> ¬{q}": "{{ {p} | conditional({q} | negation) }}",
     }
 
-    @property
-    def nl_scheme(self):
-        placeholders = {k:v.strip("{}") for k,v in self.placeholders.items()}
-        nl_scheme = [self._nl_schemes_dict[s].format(**placeholders) for s in self.formal_scheme]
-        nl_scheme = ["{"+s+"}" for s in nl_scheme] # postprocess: re-add {} which got lost in previous format() call
-        assert all((s[:2]=="{{" and s[-2:]=="}}") for s in nl_scheme) # jinja2 templates?
-        return nl_scheme
-
-
-class eSNLIBuilder(Builder):
-    """
-    The Concrete Builder classes follow the Builder interface and provide
-    specific implementations of the building steps. Your program may have
-    several variations of Builders, implemented differently.
-    """
-
     # list of errorneous argdown templates
-
-    argdown_err_templates = [
+    _argdown_err_templates = [
         "esnli/argdown_err-01.txt",
         "esnli/argdown_err-02.txt",
         "esnli/argdown_err-03.txt",
@@ -88,6 +80,26 @@ class eSNLIBuilder(Builder):
         "esnli/argdown_err-09.txt",
     ]
 
+    def __post_init__(self):
+        # choose and set random template
+        self.argdown_err_template_path = random.choice(self._argdown_err_templates)
+
+    @property
+    def nl_scheme(self) -> List[str]:
+        placeholders = {k:v.strip("{}") for k,v in self.placeholders.items()}
+        nl_scheme = [self._nl_schemes_dict[s].format(**placeholders) for s in self.formal_scheme]
+        nl_scheme = ["{"+s+"}" for s in nl_scheme] # postprocess: re-add {} which got lost in previous format() call
+        assert all((s[:2]=="{{" and s[-2:]=="}}") for s in nl_scheme) # jinja2 templates?
+        return nl_scheme
+
+
+
+class eSNLIBuilder(Builder):
+    """
+    The Concrete Builder classes follow the Builder interface and provide
+    specific implementations of the building steps. Your program may have
+    several variations of Builders, implemented differently.
+    """
 
     def preprocess(dataset:Dataset) -> Dataset:
         df_esnli = dataset.to_pandas()
@@ -301,7 +313,6 @@ class eSNLIBuilder(Builder):
                 # distractor_mask specifies which distractors will be dropped in source text:
                 for distractor_mask in [[1,1],[1,0],[0,1],[0,0]]:
                     config = self.configurations[label][ i % len(self.configurations[label]) ]
-                    config.argdown_err_template_path = random.choice(self.argdown_err_templates)
                     metadata = {"id":str(uuid.uuid4()), "config":config, "argument_mask":argument_mask, "distractor_mask":distractor_mask, "label":label}
                     deepa2record = DeepA2Item(metadata=metadata)
                     self._product.append(deepa2record)
