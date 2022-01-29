@@ -69,6 +69,17 @@ class AIFDBBuilder(Builder):
                     logging.warning(f"No node types / texts in nodeset no {i} in corpus {examples['corpus'][i]}: skipping this nodeset.")
                     continue
 
+                # construct alternative_text by joining L-nodes
+                alternative_text = [node_text.get(n,"") for n in G.nodes if node_type.get(n,None)=="L"] # L-nodes
+                alternative_text = " ".join(alternative_text)
+                alternative_text = alternative_text.replace("  "," ")
+
+                # use longer text
+                text = examples["text"][i]
+                if len(alternative_text) > 2*(len(text)-text.count("\n")):
+                    logging.debug(f"Using alternative text '{alternative_text}' rather than original text '{text}' in corpus '{examples['corpus'][i]}'.")
+                    text = alternative_text
+
                 # get all nodes of type CA / RA
                 inference_nodes = [n for n in G.nodes if node_type.get(n,None) in ["CA","RA"]]
                 # each inference node gives rise to a separate chunk
@@ -100,7 +111,7 @@ class AIFDBBuilder(Builder):
                     conclusions = [node_text[n] for n in conclusions] 
                     premises = [node_text[n] for n in premises] 
                     # create new record
-                    inference_chunks["text"].append(examples["text"][i])
+                    inference_chunks["text"].append(text)
                     inference_chunks["corpus"].append(examples["corpus"][i])
                     inference_chunks["premises"].append(premises)
                     inference_chunks["conclusions"].append(conclusions)
