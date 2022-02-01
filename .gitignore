@@ -1,3 +1,4 @@
 data
+notebooks/private
 *.log
 *__pycache__*
