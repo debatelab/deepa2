@@ -65,7 +65,7 @@ expl_entailm:
    sings to the masses.'"
 -  "hearing song brings joyous in the church."
 -  "If the church choir sings then the church is 
--  filled with song."
+   filled with song."
 expl_contrad:
 -  "A choir sing some other songs other than book 
    at church during the base play. they cannot see 
