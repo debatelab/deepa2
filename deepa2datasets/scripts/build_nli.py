@@ -1,4 +1,5 @@
-# build_nli.py
+"""Typer app for converting NLI-type data to DeepA2.
+"""
 from __future__ import annotations
 import logging 
 logging.basicConfig(filename='nli_builder.log', level=logging.DEBUG)
@@ -19,7 +20,7 @@ app = typer.Typer()
 
 @app.command()
 def esnli(export_path: Optional[str] = None, debug_mode: Optional[bool] = False):
-    """Reads e-snli, preprocesses dataset, and builds da2-esnli"""
+    """Loads and preprocesses the raw esnli dataset, builds da2-esnli."""
     
     logging.info(f"#################################################################")
     logging.info(f"Starting new esnli transformation: {datetime.datetime.now()}")

@@ -1,3 +1,4 @@
+"""Defines Builders for creating DeepA2 datasets from NLI-type data."""
 from __future__ import annotations
 
 from deepa2datasets.builder import ArgdownStatement, Builder, Formalization, PreprocessedExample, QuotedStatement, RawExample
@@ -9,17 +10,17 @@ import random
 
 from datasets import Dataset
 import pandas as pd
+import numpy as np
 from tqdm import tqdm
 tqdm.pandas()
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from typing import Any, List, Dict, Union
-from pathlib import Path
 import uuid
 import logging
 
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 
 
 class RawESNLIExample(RawExample):
@@ -50,6 +51,10 @@ class PreprocessedESNLIExample(PreprocessedExample):
 
 @dataclass
 class eSNLIConfiguration():
+    """
+    Datatype describing the build-configuration of a single 
+    DeepA2Item in a DeepA2 datasets created from eSNLI data.
+    """
     label:str
     argdown_template_path:str = "esnli/argdown_generic.txt"
     argdown_err_template_path:str = None
@@ -96,10 +101,60 @@ class eSNLIConfiguration():
 
 class eSNLIBuilder(Builder):
     """
-    The Concrete Builder classes follow the Builder interface and provide
-    specific implementations of the building steps. Your program may have
-    several variations of Builders, implemented differently.
+    eSNLI Builer preprocesses and transforms e-SNLI records into DeepA2 items. 
+
+    The structure of a raw e-SNLI item is:
+
+    .. code-block:: python
+
+       {
+           "premise": "pre" 
+           "hypothesis": "hyp" 
+           "label": "lab" 
+           "explanation_1": "exp1" 
+           "explanation_2": "exp2" 
+           "explanation_3": "exp3" 
+       }
+
+    In preprocessing, raw records are grouped by premise and split into sequences 
+    of length three with different labels (entailment-neutral-contradiction). Each of 
+    these triples is then merged into a single record:
+
+    .. code-block:: python
+
+       {
+           "premise": "pre",
+           "hypothesis_entlm": "hyp_e",
+           "hypothesis_neutr": "hyp_n", 
+           "hypothesis_contr": "hyp_c",
+           "entailment_entlm": ["exp_e1","exp_e2","exp_e3"], 
+           "entailment_neutr": ["exp_n1","exp_n2","exp_n3"], 
+           "entailment_contr": ["exp_c1","exp_c2","exp_c3"]
+       }
+
+    Finally, from each preprocessed record 32 DeepA2 items with varying source texts, arguments, reasons, 
+    conjectures and distractors are constructed (cf. ``eSNLIBuilder.configure_product()``). 
+    This example scheme illustrates the construction of a DeepA2 item from eSNLI:
+
+    .. code-block:: python
+       
+       DeepA2Item(
+           argument_source="not hyp_c. exp_n2. exp_e1.",
+           argdown_reconstruction=\"\"\"
+               (1) premise
+               (2) if hyp_c, then not premise
+               --
+               with modus tollens (from 1,2)
+               --
+               (3) not hyp_c
+           \"\"\",
+           reasons=[
+                   "exp_e1 (ref_reco: 2)" 
+               ],
+       )
+
     """
+
 
     def preprocess(dataset:Dataset) -> Dataset:
         df_esnli = dataset.to_pandas()
@@ -110,7 +165,7 @@ class eSNLIBuilder(Builder):
         df_esnli = df_esnli[df_esnli.n_explanations.ge(1)]
         # count how frequently premise occurs in the dataset (default = three times)
         counts = df_esnli.groupby(["premise"]).size()
-        tqdm.write("Preprocessing 1/7")
+        tqdm.write("Preprocessing 1/8")
         df_esnli["premise_counts"] = df_esnli.premise.progress_apply(lambda x: counts[x])
         # drop records whose premise occurs less than 3 times
         df_esnli = df_esnli[df_esnli.premise_counts.ge(3)]
@@ -124,91 +179,66 @@ class eSNLIBuilder(Builder):
         # for each premise, what is the minimum number of labels?
         df2 = df_esnli_tmp.groupby(["premise","label"]).size().unstack()
         df2.fillna(0,inplace=True)
-        tqdm.write("Preprocessing 2/7")
+        tqdm.write("Preprocessing 2/8")
         df_esnli_tmp["min_label_counts"] = df_esnli_tmp.premise.progress_apply(lambda x: int(df2.min(axis=1)[x]))     # df2.min(axis=1) tells us how many records for each premise will go into preprocessed esnli dataset
         # make sure that for each premise, we have the same number of records for labels 0,1,2
-        tqdm.write("Preprocessing 3/7")
+        tqdm.write("Preprocessing 3/8")
         df_esnli_tmp = df_esnli_tmp.groupby(["premise","label"],as_index=False).progress_apply(lambda x: x.iloc[:x.min_label_counts.iloc[0]])
         # reorder row so as to obtain alternating labels
         def reorder_premise_group(pg):
             return pg.groupby("label").apply(lambda g: g.reset_index(drop=True)).sort_index(level=1)
-        tqdm.write("Preprocessing 4/7")
+        tqdm.write("Preprocessing 4/8")
         df_esnli_tmp = df_esnli_tmp.groupby(["premise"],as_index=False).progress_apply(reorder_premise_group)
 
         ## Split 2
         # get all rows whose premise occurs exactly 3 times
         df_esnli_tmp2 = df_esnli[df_esnli.premise_counts.eq(3)].copy()
         # determine premises with incomplete labels (at least one label is missing)
-        tqdm.write("Preprocessing 5/7")
+        tqdm.write("Preprocessing 5/8")
         labels_complete = df_esnli_tmp2.groupby(["premise"]).progress_apply(lambda g: len(set(g["label"]))==3)
-        tqdm.write("Preprocessing 6/7")
+        tqdm.write("Preprocessing 6/8")
         df_esnli_tmp2["complete"] = df_esnli_tmp2.premise.progress_apply(lambda x: labels_complete[x])
         # retain only complete records
         df_esnli_tmp2 = df_esnli_tmp2[df_esnli_tmp2.complete]
 
         ## Merge
-        df_esnli_final = pd.concat([
+        df_esnli_final:pd.DataFrame = pd.concat([
             df_esnli_tmp2[list(RawESNLIExample.__annotations__.keys())],
             df_esnli_tmp[list(RawESNLIExample.__annotations__.keys())]
         ])
         df_esnli_final.reset_index(drop=True,inplace=True)
 
         ## Sanity check
-        tqdm.write("Preprocessing 7/7")
+        tqdm.write("Preprocessing 7/8")
         for start in tqdm(range(0, df_esnli_final.shape[0], 3)):
             triple = df_esnli_final.iloc[start:start + 3]
             assert len(set(triple.premise))==1
             assert len(set(triple.label))==3
 
-        ## we now merge any three raw items into a single record
-        dataset = Dataset.from_pandas(df_esnli_final)
-
-        def merge_triple_batches(examples:RawESNLIExample) -> PreprocessedESNLIExample:
-            ### sanity checks
-            # features present?
-            if not all(f in examples.keys() for f in RawESNLIExample.__annotations__.keys()):
-                logging.warning(f"incomplete esnli batch with keys {str(list(examples.keys()))}.")
-                return None
-            # batch size = 3?
-            if not len(examples["label"])==3:
-                logging.warning(f"flawed esnli batch with batch size {len(examples['label'])}.")
-                return None
-            # three different labels?
-            if not set(examples["label"])=={0, 1, 2}:
-                logging.warning(f"flawed esnli batch with labels {str(examples['label'])}.")
-                return None
-            # one and the same premise?
-            if not len(set(examples["premise"]))==1:
-                logging.warning(f"flawed esnli batch with different premises {str(examples['premise'])}.")
-                return None
-            # at least explanation1 given?
-            if any(e=='' for e in examples["explanation_1"]):
-                logging.warning(f"missing explanation for premise={str(examples['premise'][0])} (proceeding nonetheless).")
-
-            ### map to PreprocessedESNLIExample format
-            idx = {label:i for i,label in enumerate(examples["label"])}
-            preprocessed_example:PreprocessedESNLIExample = {
-                "premise":   examples["premise"][0],
-                "hypothesis_ent":  examples["hypothesis"][idx[0]],
-                "hypothesis_neu":  examples["hypothesis"][idx[1]],
-                "hypothesis_con":  examples["hypothesis"][idx[2]],
-                "explanation_ent": [
-                    examples["explanation_1"][idx[0]],
-                    examples["explanation_2"][idx[0]],
-                    examples["explanation_3"][idx[0]]
+        # Merge triples, creating a PreprocessedESNLIExample from each
+        tqdm.write("Preprocessing 8/8")
+        def merge_triple(x:pd.DataFrame):
+            preprocessed_example = PreprocessedESNLIExample(
+                premise=x.iloc[0].premise,
+                hypothesis_ent=x[x.label.eq(0)].iloc[0].hypothesis,
+                hypothesis_neu=x[x.label.eq(1)].iloc[0].hypothesis,
+                hypothesis_con=x[x.label.eq(2)].iloc[0].hypothesis,
+                explanation_ent=[
+                    x[x.label.eq(0)].iloc[0].explanation_1,
+                    x[x.label.eq(0)].iloc[0].explanation_2,
+                    x[x.label.eq(0)].iloc[0].explanation_3
                 ],
-                "explanation_neu": [
-                    examples["explanation_1"][idx[1]],
-                    examples["explanation_2"][idx[1]],
-                    examples["explanation_3"][idx[1]]
+                explanation_neu=[
+                    x[x.label.eq(1)].iloc[0].explanation_1,
+                    x[x.label.eq(1)].iloc[0].explanation_2,
+                    x[x.label.eq(1)].iloc[0].explanation_3
                 ],
-                "explanation_con": [
-                    examples["explanation_1"][idx[2]],
-                    examples["explanation_2"][idx[2]],
-                    examples["explanation_3"][idx[2]]
+                explanation_con=[
+                    x[x.label.eq(2)].iloc[0].explanation_1,
+                    x[x.label.eq(2)].iloc[0].explanation_2,
+                    x[x.label.eq(2)].iloc[0].explanation_3
                 ]
-            }
-
+            )            
             # fill in explanations in case they are missing
             # we assume that "explanation_1" is given
             for key in ["explanation_ent","explanation_neu","explanation_con"]:
@@ -216,18 +246,24 @@ class eSNLIBuilder(Builder):
                     if preprocessed_example[key][i] == "":
                         preprocessed_example[key][i] = preprocessed_example[key][0]
 
-            # batch (with batchsize=1)
-            preprocessed_example = {k:[v] for k,v in preprocessed_example.items()}
+            return pd.Series(preprocessed_example)
 
-            return preprocessed_example
+        df_esnli_final["triple_id"] = np.repeat(np.arange(int(len(df_esnli_final)/3)),3)
+        df_esnli_final = df_esnli_final.groupby("triple_id").progress_apply(merge_triple)
+        df_esnli_final.reset_index(drop=True,inplace=True)
+        logging.debug(f"Head of preprocessed esnli dataframe:\n {df_esnli_final.head()}")
 
-        dataset = dataset.map(merge_triple_batches, batched=True, batch_size=3, remove_columns=dataset.column_names)
+        ## create dataset
+        dataset = Dataset.from_pandas(df_esnli_final)
+
+        ## check features
+        assert dataset.column_names == list(PreprocessedESNLIExample.__annotations__.keys())
 
         return dataset
 
 
     # stores argument configurations used for creating DeepA2 data records 
-    configurations = {
+    CONFIGURATIONS = {
         "entailment": [
             eSNLIConfiguration(
                 label="entailment",
@@ -266,8 +302,7 @@ class eSNLIBuilder(Builder):
 
     def __init__(self) -> None:
         """
-        A fresh builder instance should contain a blank product object, which is
-        used in further assembly.
+        Initialize eSNLI Builder.
         """
         # check whether template files are accessible
         if not (template_dir / "esnli").exists():
@@ -312,7 +347,7 @@ class eSNLIBuilder(Builder):
             for argument_mask in [[1,1,1],[0,1,1],[1,0,1],[1,1,0]]:
                 # distractor_mask specifies which distractors will be dropped in source text:
                 for distractor_mask in [[1,1],[1,0],[0,1],[0,0]]:
-                    config = self.configurations[label][ i % len(self.configurations[label]) ]
+                    config = self.CONFIGURATIONS[label][ i % len(self.CONFIGURATIONS[label]) ]
                     metadata = {"id":str(uuid.uuid4()), "config":config, "argument_mask":argument_mask, "distractor_mask":distractor_mask, "label":label}
                     deepa2record = DeepA2Item(metadata=metadata)
                     self._product.append(deepa2record)
@@ -353,7 +388,6 @@ class eSNLIBuilder(Builder):
         # erroneous argdown
         argdown_err_template = self._env.get_template(config.argdown_err_template_path)
         record.erroneous_argdown = (argdown_err_template.render(premise1=argument_list[0],premise2=argument_list[1],conclusion=argument_list[-1],scheme=config.scheme_name))
-
 
         ### Step 2: premises and conclusion lists
         # premises
@@ -434,7 +468,7 @@ class eSNLIBuilder(Builder):
         # source paraphrase
         sp_template = self._env.get_template(config.source_paraphrase_template_path)
         record.source_paraphrase = (sp_template.render(premises=[d.text for d in record.reason_statements],conclusion=[d.text for d in record.conclusion_statements]))
-        # title 
+        # title, context
         # TODO
 
 

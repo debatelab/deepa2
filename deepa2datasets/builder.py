@@ -1,3 +1,31 @@
+"""Defines core abstract classes and data structures for DeepA2 datasets.
+
+This module defines core abstract classes and data structures for building 
+DeepA2 datasets. The core classess follow the director-builder design pattern.
+Scripts that build concrete datasets only have implement the abstract builder 
+interface. In addition, the module defines the structure of DeepA2 datasets by 
+means of the dataclass `DeepA2Item()`.
+
+  Typical usage example:
+
+  class MyBuilder(builder.Builer)
+      pass
+
+  director = Director()
+  builder = MyBuilder()
+  director.builder = builder  
+  
+  # load and preprocess data
+
+  da2_dataset = preprocessed_dataset.map(
+      director.transform, 
+      batched=True, 
+      batch_size=1, 
+      remove_columns=preprocessed_dataset.column_names()
+  )
+
+"""
+
 from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import Any,List,Dict,TypedDict

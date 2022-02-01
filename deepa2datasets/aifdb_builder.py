@@ -122,6 +122,9 @@ class AIFDBBuilder(Builder):
             return inference_chunks
         dataset = dataset.map(split_nodeset_per_inference, batched=True, remove_columns=dataset.column_names)
 
+        ## check features
+        assert dataset.column_names == list(PreprocessedAIFDBExample.__annotations__.keys())
+
         return dataset
 
 
