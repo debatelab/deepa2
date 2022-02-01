@@ -1,6 +1,9 @@
 # deepa2-datasets
 
-Resources for Creating, Importing and Managing DeepA2 Argument Analysis Framework Datasets
+Resources for Creating, Importing and Managing DeepA2 Argument Analysis Framework Datasets.
+
+* [Documentation](docs/)
+* DeepA2 Datasets
 
 ## Getting Started
 
@@ -11,7 +14,7 @@ Clone the repository:
 git clone https://github.com/debatelab/deepa2-datasets.git
 ```
 
-Install this package from with the repo's root folder:
+Install this package from within the repo's root folder:
 ```bash
 poetry install
 ```
@@ -29,3 +32,18 @@ We welcome contributions to this repository, especially scripts that port existi
 2. [**required**] a script that defines a pipeline for transforming the original data as a typer app / command  (such as, e.g., `scripts/build_nli`) using the concrete builder (item 1);
 3. [**recommended**] dataclasses which describe raw and preprocessed examples and extend the abstract classes `builder.RawExample` and `builder.PreprocessedExample`;
 4. [**recommended**] a documentation of the piepline (as for example in `docs/esnli.md`).
+
+## Citation
+
+This repository builds on and extends the DeepA2 Framework originally presented in:
+
+```bibtex
+@misc{betz2021deepa2,
+      title={DeepA2: A Modular Framework for Deep Argument Analysis with Pretrained Neural Text2Text Language Models}, 
+      author={Gregor Betz and Kyle Richardson},
+      year={2021},
+      eprint={2110.01509},
+      archivePrefix={arXiv},
+      primaryClass={cs.CL}
+}
+```
