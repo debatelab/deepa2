@@ -105,7 +105,7 @@ or, respectively:
 (3) not hyp_contrad
 ```
 
-Second, we construct argument source texts by shuffling premises, hypotheses and explanations. In doing so, some of the sentences serve as distractors, others may be left out to the effect that a premise and or the conclusion are implicit. 
+Second, we construct argument source texts by shuffling premises, hypotheses and explanations. In doing so, some of the sentences serve as distractors, others may be left out to the effect that a premise and/or the conclusion are implicit. 
 
 Thirdly, we construct lists of reasons and conjectures, which identify explicitly stated parts of the argument and map them to their counterparts in the argdown snippet.
 
