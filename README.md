@@ -33,6 +33,8 @@ We welcome contributions to this repository, especially scripts that port existi
 3. [**recommended**] dataclasses which describe raw and preprocessed examples and extend the dummy classes `builder.RawExample` and `builder.PreprocessedExample`;
 4. [**recommended**] a documentation of the piepline (as for example in `docs/esnli.md`).
 
+Consider **suggesting** to collaboratively construct such pipeline by opening a [new issue](issues).
+
 ## Citation
 
 This repository builds on and extends the DeepA2 Framework originally presented in:
