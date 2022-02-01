@@ -35,7 +35,7 @@ Free for academic use ([more info](https://arg-tech.org/index.php/research/argum
 
 ## Preprocessing AIFdb for DeepA2
 
-Each argument in an AIFdb argument map gives rise to a separate preprocessed example. More precisely, we identify all default inferential relations in a nodeset (default inference and default conflict); for each of these inferences, we identify premises, conclusion and the corresponding annotated sequences in the `source text`. In addition, a single preprocessed example from AIFdb comprises information about the type of inferential relation and the original corpus, e.g.:
+Each argument in a AIFdb argument map gives rise to a separate preprocessed example. More precisely, we extract all default inferential relations in a nodeset (default inference and default conflict); for each of these inferences, we identify premises, conclusion and the corresponding annotated sequences in the `source text`. In addition, a single preprocessed example from AIFdb comprises information about the type of inferential relation and the original corpus, e.g.:
 
 ```yaml
 text: "MB: Melanie Phillips? MP: You say in this case there 
@@ -74,7 +74,7 @@ conjectures:
 
 ### Construction
 
-From each preprocessed AIFdb example, we build a single DeepA2 item. It's straightforward to cast source text, reasons and conjectures to AIFdb-. Moreover, we use premises and conclusion to compile a clear and succinct paraphrase of the reconstructed argument.
+From each preprocessed AIFdb example, we build a single DeepA2 item. It's straightforward to cast source text, reasons and conjectures to AIFdb. Moreover, we use premises and conclusion to compile a clear and succinct paraphrase of the reconstructed argument (in function of the type of inferential relation between premises and conclusion).
 
 
 ### Features
