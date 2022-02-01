@@ -21,6 +21,19 @@ NLI dataset with explanations for why the inferential relation indicated by the 
 }
 ```
 
+```yaml
+premise: "This church choir sings to the masses as
+    they sing joyous songs from the book at a church."
+hypothesis: "The church has cracks in the ceiling."
+label: "neutral",
+explanation_1: "Not all churches have cracks in the
+    ceiling",
+explanation_2: "There is no indication that there are
+    cracks in the ceiling of the church.",
+explanation_3: "Not all churches have cracks in the
+    ceiling."
+```
+
 
 
 ### Source
