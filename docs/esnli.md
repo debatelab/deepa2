@@ -6,17 +6,17 @@ NLI dataset with explanations for why the inferential relations indicated by the
 
 ### Features
 
-```json
+```python
 {
-    "premise":"This church choir sings to the masses as 
+    "premise":"This church choir sings to the masses as \\
         they sing joyous songs from the book at a church.",
     "hypothesis":"The church has cracks in the ceiling.",
     "label":"neutral",
-    "explanation_1":"Not all churches have cracks in the 
+    "explanation_1":"Not all churches have cracks in the \\
         ceiling",
-    "explanation_2":"There is no indication that there are
+    "explanation_2":"There is no indication that there are \\
         cracks in the ceiling of the church.",
-    "explanation_3":"Not all churches have cracks in the 
+    "explanation_3":"Not all churches have cracks in the \\
         ceiling."
 }
 ```
@@ -51,29 +51,29 @@ MIT License
 
 e-SNLI examples are grouped by `premise` and splitted into chunks of three items with different labels (but identical premise). These three items are then merged into a single preprocessed example, e.g.:
 
-```json
+```python
 {
-    "premise":"This church choir sings to the masses as 
+    "premise":"This church choir sings to the masses as \\
         they sing joyous songs from the book at a church.",
     "hyp_neutral":"The church has cracks in the ceiling.",
     "hyp_entailm":"The church is filled with song.",
     "hyp_contrad":"A choir singing at a baseball game.",
     "expl_neutral":[
         "Not all churches have cracks in the ceiling",
-        "There is no indication that there are cracks 
+        "There is no indication that there are cracks \\
         in the ceiling of the church.",
         "Not all churches have cracks in the ceiling."
     ],
     "expl_entailm":[
-        "'Filled with song' is a rephrasing of the 'choir 
+        "'Filled with song' is a rephrasing of the 'choir \\ 
         sings to the masses.'",
         "hearing song brings joyous in the church.",
-        "If the church choir sings then the church is 
+        "If the church choir sings then the church is \\
         filled with song."
     ],
     "expl_contrad":[
-        "A choir sing some other songs other than book 
-        at church during the base play. they cannot see 
+        "A choir sing some other songs other than book \\
+        at church during the base play. they cannot see \\
         book and play base ball same time.",
         "The choir is at a chruch not a baseball game.",
         "A baseball game isn’t played at a church."
@@ -112,34 +112,34 @@ Thirdly, we construct lists of reasons and conjectures, which identify explicitl
 
 ### Features
 
-- [x] argument_source
-- [ ] title
-- [x] gist
-- [x] source_paraphrase
-- [ ] context
+- [x] `argument_source`
+- [ ] `title`
+- [x] `gist`
+- [x] `source_paraphrase`
+- [ ] `context`
 
 <!-- -->
 
-- [x] reason_statements
-- [x] conclusion_statements
-- [x] distractors
+- [x] `reason_statements`
+- [x] `conclusion_statements`
+- [x] `distractors`
 
 <!-- -->
 
-- [x] argdown_reconstruction
-- [x] erroneous_argdown
-- [x] premises
-- [ ] intermediary_conclusion
-- [x] conclusion
+- [x] `argdown_reconstruction`
+- [x] `erroneous_argdown`
+- [x] `premises`
+- [ ] `intermediary_conclusion`
+- [x] `conclusion`
 
 <!-- -->
 
-- [x] premises_formalized
-- [ ] intermediary_conclusion_formalized
-- [x] conclusion_formalized
-- [ ] predicate_placeholders
-- [ ] entity_placeholders
-- [x] misc_placeholders
+- [x] `premises_formalized`
+- [ ] `intermediary_conclusion_formalized`
+- [x] `conclusion_formalized`
+- [ ] `predicate_placeholders`
+- [ ] `entity_placeholders`
+- [x] `misc_placeholders`
 
 
 
