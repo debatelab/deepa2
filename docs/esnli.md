@@ -58,18 +58,18 @@ hyp_contrad: "A choir singing at a baseball game."
 expl_neutral:
 -  "Not all churches have cracks in the ceiling"
 -  "There is no indication that there are cracks 
--  in the ceiling of the church."
+   in the ceiling of the church."
 -  "Not all churches have cracks in the ceiling."
 expl_entailm:
 -  "'Filled with song' is a rephrasing of the 'choir 
--  sings to the masses.'"
+   sings to the masses.'"
 -  "hearing song brings joyous in the church."
 -  "If the church choir sings then the church is 
 -  filled with song."
 expl_contrad:
 -  "A choir sing some other songs other than book 
--  at church during the base play. they cannot see 
--  book and play base ball same time."
+   at church during the base play. they cannot see 
+   book and play base ball same time."
 -  "The choir is at a chruch not a baseball game."
 -  "A baseball game isn’t played at a church."
 ```
