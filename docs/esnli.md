@@ -2,7 +2,7 @@
 
 ## Original Dataset
 
-NLI dataset with explanations for why the inferential relations indicated by the `label` holds between `premise` and `hypothesis`.
+NLI dataset with explanations for why the inferential relation indicated by the `label` holds between `premise` and `hypothesis`.
 
 ### Features
 
@@ -28,7 +28,7 @@ NLI dataset with explanations for why the inferential relations indicated by the
 * [esnli at github](https://github.com/OanaMariaCamburu/e-SNLI)
 * [esnli at hugging face](https://huggingface.co/datasets/esnli)
 
-### Licence
+### License
 
 MIT License
 
@@ -47,7 +47,7 @@ MIT License
 }
 ```
 
-## Preprocessing e-SNLI
+## Preprocessing e-SNLI for DeepA2
 
 e-SNLI examples are grouped by `premise` and splitted into chunks of three items with different labels (but identical premise). These three items are then merged into a single preprocessed example, e.g.:
 
