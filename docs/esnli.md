@@ -65,7 +65,7 @@ e-SNLI examples are grouped by `premise` and splitted into chunks of three items
         "Not all churches have cracks in the ceiling."
     ],
     "expl_entailm":[
-        "'Filled with song' is a rephrasing of the 'choir \\ 
+        "'Filled with song' is a rephrasing of the 'choir \\
         sings to the masses.'",
         "hearing song brings joyous in the church.",
         "If the church choir sings then the church is \\
