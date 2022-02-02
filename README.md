@@ -21,7 +21,7 @@ poetry install
 
 Run a script, e.g.:
 ```bash
-poetry run build-nli esnli --debug-size 3000 --export-path ./data/processed
+poetry run build-nli esnli --debug-size 300 --export-path ./data/processed
 ```
 
 ## Contribute a DeepA2Builder for another Dataset
