@@ -139,7 +139,7 @@ class Builder(ABC):
     @abstractmethod
     def input(self) -> PreprocessedExample:
         """
-        The input of any builder is a proprocessed example.
+        The input of any builder is a preprocessed example.
         """
 
     @input.setter
