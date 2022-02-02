@@ -24,7 +24,6 @@ import dataclasses
 from dataclasses import dataclass
 
 import datasets
-from datasets import Dataset,DatasetDict
 
 
 
@@ -99,7 +98,7 @@ class DatasetLoader():
         self._args = args
         self._kwargs = kwargs
 
-    def load_dataset(self) -> DatasetDict:
+    def load_dataset(self) -> datasets.DatasetDict:
         """
         Default DatasetLoader uses HF `Dataset.load_dataset`.
         """
@@ -115,7 +114,7 @@ class Builder(ABC):
 
     @staticmethod
     @abstractmethod
-    def preprocess(dataset:Dataset) -> Dataset:
+    def preprocess(dataset:datasets.Dataset) -> datasets.Dataset:
         """
         Preprocesses the dataset.
         """

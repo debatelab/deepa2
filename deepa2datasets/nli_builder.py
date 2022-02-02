@@ -1,26 +1,28 @@
 """Defines Builders for creating DeepA2 datasets from NLI-type data."""
 from __future__ import annotations
 
-from deepa2datasets.core import ArgdownStatement, Builder, Formalization, PreprocessedExample, QuotedStatement, RawExample
-from deepa2datasets.core import DeepA2Item
-from deepa2datasets.config import template_dir,package_dir
-import deepa2datasets.jinjafilters as jjfilters
-
-import random
-
-from datasets import Dataset
-import pandas as pd
-import numpy as np
-from tqdm import tqdm
-tqdm.pandas()
-
-from jinja2 import Environment, FileSystemLoader, select_autoescape
-
 from typing import Any, List, Dict, Union
 import uuid
 import logging
 
 from dataclasses import dataclass, field
+
+import random
+
+import pandas as pd
+import numpy as np
+from tqdm import tqdm
+tqdm.pandas()
+
+import jinja2 
+
+import datasets
+
+from deepa2datasets.core import ArgdownStatement, Builder, Formalization, PreprocessedExample, QuotedStatement, RawExample
+from deepa2datasets.core import DeepA2Item
+from deepa2datasets.config import template_dir,package_dir
+import deepa2datasets.jinjafilters as jjfilters
+
 
 
 class RawESNLIExample(RawExample):
@@ -105,7 +107,7 @@ class eSNLIBuilder(Builder):
     """
 
     @staticmethod
-    def preprocess(dataset:Dataset) -> Dataset:
+    def preprocess(dataset:datasets.Dataset) -> datasets.Dataset:
         df_esnli = dataset.to_pandas()
         df_esnli = df_esnli.drop_duplicates()
         # count explanations per row
@@ -205,7 +207,7 @@ class eSNLIBuilder(Builder):
         logging.debug(f"Head of preprocessed esnli dataframe:\n {df_esnli_final.head()}")
 
         ## create dataset
-        dataset = Dataset.from_pandas(df_esnli_final)
+        dataset = datasets.Dataset.from_pandas(df_esnli_final)
 
 
         return dataset
@@ -260,9 +262,9 @@ class eSNLIBuilder(Builder):
             logging.debug(f"List template dir: {list(template_dir.glob('*'))}")
             err_m = f'No "esnli" subdirectory in template_dir {template_dir.resolve()}'
             raise ValueError(err_m)
-        self._env = Environment(
-            loader = FileSystemLoader(template_dir),
-            autoescape=select_autoescape()
+        self._env = jinja2.Environment(
+            loader = jinja2.FileSystemLoader(template_dir),
+            autoescape=jinja2.select_autoescape()
         )
 
 

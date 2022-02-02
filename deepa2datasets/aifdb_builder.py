@@ -1,27 +1,23 @@
 from __future__ import annotations
-
-from deepa2datasets.core import Builder, DatasetLoader
-from deepa2datasets.core import DeepA2Item, QuotedStatement, PreprocessedExample, RawExample
-from deepa2datasets.config import template_dir, package_dir, moral_maze_config
-
-import random
-
-from datasets import Dataset, DatasetDict
-from tqdm import tqdm
-tqdm.pandas()
+from typing import Any,List,Dict,Union
+import logging
+import dataclasses
 
 from pathlib import Path
 import requests, zipfile, io
 import json
+import random
 
-from networkx.readwrite import json_graph
-import networkx as nx
-
-from jinja2 import Environment, FileSystemLoader, select_autoescape
+import jinja2
 import re
 
-from typing import Any,List,Dict,Union,Optional
-import logging
+import datasets
+
+import networkx as nx
+
+from deepa2datasets.core import Builder, DatasetLoader
+from deepa2datasets.core import DeepA2Item, QuotedStatement, PreprocessedExample, RawExample
+from deepa2datasets.config import template_dir, package_dir
 
 
 
@@ -39,26 +35,46 @@ class PreprocessedAIFDBExample(PreprocessedExample):
     premises:Union[List[str],List[Any]]
     conclusions:Union[List[str],List[Any]]
 
+@dataclasses.dataclass
+class AIFDBConfig:
+    name:str
+    cache_dir:Path
+    corpora:List[str]
+    splits:Dict[str,float] = dataclasses.field(default_factory=lambda: {"train":.8,"validation":.1,"test":.1})
+    templates_sp_ca:List[str] = dataclasses.field(default_factory=lambda: [
+        'aifdb/source_paraphrase_ca-01.txt',
+        'aifdb/source_paraphrase_ca-02.txt',
+        'aifdb/source_paraphrase_ca-03.txt',
+        'aifdb/source_paraphrase_ca-04.txt',
+        'aifdb/source_paraphrase_ca-05.txt',
+    ])
+    templates_sp_ra:List[str] = dataclasses.field(default_factory=lambda: [
+        'aifdb/source_paraphrase_ra-01.txt',
+        'aifdb/source_paraphrase_ra-02.txt',
+    ])
+
 
 class AIFDBLoader(DatasetLoader):
-    def __init__(self, aifdb_config:Optional[Dict]=None):
+
+    def __init__(self, aifdb_config:AIFDBConfig=None):
         self._aifdb_config = aifdb_config
-    def load_dataset(self) -> DatasetDict:
-        splits = self._aifdb_config.get('splits')
+    
+    def load_dataset(self) -> datasets.DatasetDict:
+        splits = self._aifdb_config.splits
 
         # download and unpack corpora
-        aifdb_dir = Path(self._aifdb_config.get('cache_dir'))
+        aifdb_dir = Path(self._aifdb_config.cache_dir)
         logging.info(f"Downloading aifdb dataset to {aifdb_dir} ...")
-        for url in self._aifdb_config.get('corpora',[]):
+        for url in self._aifdb_config.corpora:
             destination = Path(aifdb_dir, url.split("/")[-1])
             if destination.is_dir():
                 logging.debug(f"Using cached {destination}.")
             else:
                 destination.mkdir(parents=True, exist_ok=True)
                 logging.debug(f"Downloading {url}")
-                r = requests.get(url+"/download")
-                z = zipfile.ZipFile(io.BytesIO(r.content))
-                z.extractall(str(destination.resolve()))    
+                request = requests.get(url+"/download")
+                with zipfile.ZipFile(io.BytesIO(request.content)) as zip_file:
+                    zip_file.extractall(str(destination.resolve()))
                 logging.debug(f"Saved {url} to {destination}.")
 
         # load aifdb dataset from disk
@@ -72,12 +88,12 @@ class AIFDBLoader(DatasetLoader):
                             data["nodeset"].append(json.load(nodefile.open()))
                             data["text"].append("".join(textfile.open().readlines()))
                             data["corpus"].append(corpus_dir.name)
-        dataset = Dataset.from_dict(data)
+        dataset = datasets.Dataset.from_dict(data)
 
         # create train-validation-test splits 
         dataset = dataset.train_test_split(test_size=(1-splits["train"])) # split once
         dataset_tmp = dataset["test"].train_test_split(test_size=(splits["test"]/(splits["test"]+splits["validation"]))) # split test-split again
-        dataset = DatasetDict(train=dataset["train"],validation=dataset_tmp["train"],test=dataset_tmp["test"])
+        dataset = datasets.DatasetDict(train=dataset["train"],validation=dataset_tmp["train"],test=dataset_tmp["test"])
 
 
         return dataset
@@ -89,12 +105,12 @@ class AIFDBBuilder(Builder):
     """
 
     @staticmethod
-    def preprocess(dataset:Dataset) -> Dataset:
+    def preprocess(dataset:datasets.Dataset) -> datasets.Dataset:
 
         # clean html
-        CLEANR = re.compile('<.*?>') 
+        cleanr = re.compile('<.*?>')
         def cleanhtml(example):
-            example["text"] = re.sub(CLEANR, '', example["text"])
+            example["text"] = re.sub(cleanr, '', example["text"])
             return example
         dataset = dataset.map(cleanhtml)
 
@@ -106,16 +122,16 @@ class AIFDBBuilder(Builder):
                 # initialize graph representing the argumentative analysis
                 nodeset['directed']=True
                 attrs = {'source':'fromID', 'target':'toID', 'name':'nodeID','key':'key', 'link':'edges'}
-                G = json_graph.node_link_graph(nodeset,attrs=attrs)
-                node_type = nx.get_node_attributes(G, "type")
+                graph = nx.readwrite.json_graph.node_link_graph(nodeset,attrs=attrs)
+                node_type = nx.get_node_attributes(graph, "type")
                 #logging.debug(f"node types: {node_type}")
-                node_text = nx.get_node_attributes(G, "text")
+                node_text = nx.get_node_attributes(graph, "text")
                 if not (node_type and node_text):
                     logging.warning(f"No node types / texts in nodeset no {i} in corpus {examples['corpus'][i]}: skipping this nodeset.")
                     continue
 
                 # construct alternative_text by joining L-nodes
-                alternative_text = [node_text.get(n,"") for n in G.nodes if node_type.get(n,None)=="L"] # L-nodes
+                alternative_text = [node_text.get(n,"") for n in graph.nodes if node_type.get(n,None)=="L"] # L-nodes
                 alternative_text = " ".join(alternative_text)
                 alternative_text = alternative_text.replace("  "," ")
 
@@ -126,21 +142,21 @@ class AIFDBBuilder(Builder):
                     text = alternative_text
 
                 # get all nodes of type CA / RA
-                inference_nodes = [n for n in G.nodes if node_type.get(n,None) in ["CA","RA"]]
+                inference_nodes = [n for n in graph.nodes if node_type.get(n,None) in ["CA","RA"]]
                 # each inference node gives rise to a separate chunk
                 for inference_node in inference_nodes:
                     # get conclusion (ids)
-                    conclusions = [n for n in G.successors(inference_node) if node_type[n]=="I"]
+                    conclusions = [n for n in graph.successors(inference_node) if node_type[n]=="I"]
                     # get premises (ids)
-                    premises = [n for n in G.predecessors(inference_node) if node_type[n]=="I"]
+                    premises = [n for n in graph.predecessors(inference_node) if node_type[n]=="I"]
                     # get conjectures and reasons (ids)
                     def get_L_grandparent(node):
                         if node_type[node]!="I":
                             return None
-                        ya_predecessors = [n for n in G.predecessors(node) if node_type[n]=="YA"]     
+                        ya_predecessors = [n for n in graph.predecessors(node) if node_type[n]=="YA"]     
                         if not ya_predecessors:
                             return None
-                        l_grandparents = [n for m in ya_predecessors for n in G.predecessors(m) if node_type[n]=="L" and node_text[n]!="analyses"]
+                        l_grandparents = [n for m in ya_predecessors for n in graph.predecessors(m) if node_type[n]=="L" and node_text[n]!="analyses"]
                         return l_grandparents
                     conjectures = [get_L_grandparent(n) for n in conclusions]
                     if conjectures:
@@ -167,15 +183,10 @@ class AIFDBBuilder(Builder):
             return inference_chunks
         dataset = dataset.map(split_nodeset_per_inference, batched=True, remove_columns=dataset.column_names)
 
-        ## check features
-        assert dataset.column_names == list(PreprocessedAIFDBExample.__annotations__.keys())
-
         return dataset
 
 
-
-
-    def __init__(self) -> None:
+    def __init__(self, aifdb_config:AIFDBConfig) -> None:
         """
         A fresh builder instance should contain a blank product object, which is
         used in further assembly.
@@ -187,10 +198,11 @@ class AIFDBBuilder(Builder):
             logging.debug(f"List template dir: {list(template_dir.glob('*'))}")
             err_m = f'No "aifdb" subdirectory in template_dir {template_dir.resolve()}'
             raise ValueError(err_m)
-        self._env = Environment(
-            loader = FileSystemLoader(template_dir),
-            autoescape=select_autoescape()
+        self._env = jinja2.Environment(
+            loader = jinja2.FileSystemLoader(template_dir),
+            autoescape=jinja2.select_autoescape()
         )
+        self._aifdb_config = aifdb_config
 
 
         self.reset()
@@ -214,7 +226,7 @@ class AIFDBBuilder(Builder):
     def configure_product(self) -> None:
         # create empty DeepA2Items and store them in _product
         itype = self._input['type']
-        sp_template = random.choice(moral_maze_config["templates_sp_ra"] if itype=="RA" else moral_maze_config["templates_sp_ca"])
+        sp_template = random.choice(self._aifdb_config.templates_sp_ra if itype=="RA" else self._aifdb_config.templates_sp_ca)
         metadata = {
             "corpus": self._input['corpus'],
             "type": itype,
@@ -227,8 +239,11 @@ class AIFDBBuilder(Builder):
         # we produce a single da2item per input only
         record = self._product[0]
         record.argument_source = self.input["text"]
-        record.reason_statements = [QuotedStatement(text=r,starts_at=None,ref_reco=e) for e,r in enumerate(self.input['reasons'])]
-        record.conclusion_statements = [QuotedStatement(text=j,starts_at=None,ref_reco=len(record.reason_statements)+1) for j in self.input['conjectures']]
+        record.reason_statements = [QuotedStatement(text=r,starts_at=None,ref_reco=e)
+            for e,r in enumerate(self.input['reasons'])]
+        n_reas = len(record.reason_statements)
+        record.conclusion_statements = [QuotedStatement(text=j,starts_at=None,ref_reco=n_reas+1)
+            for j in self.input['conjectures']]
         # source paraphrase
         sp_template = self._env.get_template(record.metadata["config"]["sp_template"])
         record.source_paraphrase = (sp_template.render(premises=self.input['premises'],conclusion=self.input['conclusions']))
