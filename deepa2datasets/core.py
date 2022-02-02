@@ -10,29 +10,6 @@ the `DatasetLoader`.
 In addition, the module defines the structure of DeepA2 datasets by 
 means of the dataclass `DeepA2Item()`.
 
-  Typical usage example:
-
-  from deepa2datasets import core
-
-  class MyBuilder(core.Builder):
-      pass
-
-  class MyRawExample(core.RawExample):
-      pass
-
-  class MyPreprocessedExample(core.PreprocessedExample):
-      pass
-
-  director = core.Director()
-  builder = MyBuilder()
-  dataset_loader = core.DatasetLoader("some-dataset-at-hf-hub")
-  director.builder = builder
-  director.dataset_loader = dataset_loader
-  director.raw_example_type = MyRawExample
-  director.preprocessed_example_type = MyPreprocessedExample  
-
-  director.transform(export_path="some-path")
-  
 """
 
 from __future__ import annotations
@@ -195,7 +172,31 @@ class Builder(ABC):
 class Director:
     """
     The Director implements a universal pipeline for building DeepA2 datasets.
-    """
+
+        Typical usage example:
+
+        from deepa2datasets import core
+
+        class MyBuilder(core.Builder):
+            pass
+
+        class MyRawExample(core.RawExample):
+            pass
+
+        class MyPreprocessedExample(core.PreprocessedExample):
+            pass
+
+        director = core.Director()
+        builder = MyBuilder()
+        dataset_loader = core.DatasetLoader("some-dataset-at-hf-hub")
+        director.builder = builder
+        director.dataset_loader = dataset_loader
+        director.raw_example_type = MyRawExample
+        director.preprocessed_example_type = MyPreprocessedExample  
+
+        director.transform(export_path="some-path")
+
+        """
 
     def __init__(self) -> None:
         self._builder = None
