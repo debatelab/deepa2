@@ -16,7 +16,6 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 import dataclasses
-from dataclasses import dataclass
 import logging
 from pathlib import Path
 from typing import Optional,Any,List,Dict,TypedDict,Type
@@ -32,52 +31,77 @@ class PreprocessedExample(TypedDict):
     pass
 
 
-@dataclass
+@dataclasses.dataclass
 class QuotedStatement():
     text:str
     starts_at:int
     ref_reco:int
 
-@dataclass
+@dataclasses.dataclass
 class ArgdownStatement():
     text:str
     explicit:Any
     ref_reco:int
 
-@dataclass
+@dataclasses.dataclass
 class Formalization():
     form:str
     ref_reco:int
 
 
-@dataclass
+@dataclasses.dataclass
 class DeepA2Item():
     """
     Dataclass defining the structure of a DeepA2 example.
+
+    Attributes:
+        argument_source: source text that pinformally presents the reconstructed argument
+        title: telling title of the reconstructed argument
+        gist: very succinct summary of the argument, main point of the argument
+        source_paraphrase: a maximally clear, though conservative summary of the argument
+            (i.e., leavex out distractors, focuses on one argument, leaves out redundant parts,
+            syntactic streamlining, adds inference indicators, but does generally not explicate
+            implicit premises)
+        context: provides informal or semi-formal description of the argument's context,
+            ideally an argdown snippet (without detailed reconstruction) sketching the dialectic
+            neighbourhood
+        argdown_reconstruction: argdown snippet with reconstruction of the argument
+        erroneous_argdown: a flawed reconstruction, similar to the correct one
+        reason_statements: a list of reason statements (verbatim quotes from `argument_source`)
+        conclusion_statements: a list of conjectures (verbatim quotes from `argument_source`)
+        premises: the premises of `argdown_reconstruction`
+        intermediary_conclusions: the intermediary conclusions of `argdown_reconstruction`
+        conclusion: the conclusion of `argdown_reconstruction`
+        premises_formalized: formalizations of the `premises`
+        intermediary_conclusions_formalized: formalizations of the `intermediary_conclusions`
+        conclusion_formalized: formalizations of the `conclusion`
+        predicate_placeholders: placeholders in formalizations
+        entity_placeholders: placeholders in formalizations
+        misc_placeholders: placeholders in formalizations
+        distractors: list of disctractors in àrgument_source`
+        metadata: metadata
+
     """
 
     argument_source:str = None
 
-    title:str = None # telling title of the reconstructed argument
-    gist:str = None # very succinct summary of the argument, main point of the argument
-    source_paraphrase:str = None # a maximally clear, though conservative summary of the argument 
-        # (i.e., leave out distractors, focus on one argument, leave out redundant parts, syntactic 
-        # streamlining, add inference indicators, but generally NO explication of implicit premises)
-    context:str = None # provides informal or semi-formal description of the argument's context, ideally
-        # an argdown snippet (without detailed reconstruction) sketching the dialectic neighbourhood 
+    title:str = None
+    gist:str = None
+    source_paraphrase:str = None
+    context:str = None
 
     argdown_reconstruction:str = None
     erroneous_argdown:str = None
 
     reason_statements:List[QuotedStatement] = None
     conclusion_statements:List[QuotedStatement] = None
-    
+
     premises:List[ArgdownStatement] = None
-    intermediary_conclusion:List[ArgdownStatement] = None
+    intermediary_conclusions:List[ArgdownStatement] = None
     conclusion:List[ArgdownStatement] = None
-    
+
     premises_formalized:List[Formalization] = None
-    intermediary_conclusion_formalized:List[Formalization] = None
+    intermediary_conclusions_formalized:List[Formalization] = None
     conclusion_formalized:List[Formalization] = None
     predicate_placeholders:List[str] = None
     entity_placeholders:List[str] = None
@@ -86,7 +110,7 @@ class DeepA2Item():
     distractors:List[str] = None
     metadata:Dict = None
 
-    
+
 
 class DatasetLoader():
     """
