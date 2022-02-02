@@ -32,7 +32,7 @@ We welcome contributions to this repository, especially scripts that port existi
 2. [**required**] a DataLoader which provides a method for loading the raw data as a HF Dataset object (such as, for example, `aifdb_builder.AIFDBLoader`) -- you may use `core.DataLoader` as is in case the data is available in a way compatible with HF Dataset;
 3. [**required**] dataclasses which describe the features of the raw data and the preprocessed data, and which extend the dummy classes `core.RawExample` and `core.PreprocessedExample`;
 4. [**required**] a script that defines a typer app / command for transforming the original data, using the concrete builder (such as, e.g., `scripts/build_nli.py`);
-5. [**recommended**] a documentation of the piepline (as for example in `docs/esnli.md`).
+5. [**recommended**] a documentation of the pipeline (as for example in `docs/esnli.md`).
 
 Consider **suggesting** to collaboratively construct such a pipeline by opening a [new issue](https://github.com/debatelab/deepa2-datasets/issues).
 
