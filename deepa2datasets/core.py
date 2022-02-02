@@ -55,7 +55,7 @@ class DeepA2Item():
     Dataclass defining the structure of a DeepA2 example.
 
     Attributes:
-        argument_source: source text that pinformally presents the reconstructed argument
+        argument_source: source text that informally presents the reconstructed argument
         title: telling title of the reconstructed argument
         gist: very succinct summary of the argument, main point of the argument
         source_paraphrase: a maximally clear, though conservative summary of the argument
