@@ -1,8 +1,8 @@
 """Defines Builders for creating DeepA2 datasets from NLI-type data."""
 from __future__ import annotations
 
-from deepa2datasets.builder import ArgdownStatement, Builder, Formalization, PreprocessedExample, QuotedStatement, RawExample
-from deepa2datasets.builder import DeepA2Item
+from deepa2datasets.core import ArgdownStatement, Builder, Formalization, PreprocessedExample, QuotedStatement, RawExample
+from deepa2datasets.core import DeepA2Item
 from deepa2datasets.config import template_dir,package_dir
 import deepa2datasets.jinjafilters as jjfilters
 
@@ -101,61 +101,10 @@ class eSNLIConfiguration():
 
 class eSNLIBuilder(Builder):
     """
-    eSNLI Builer preprocesses and transforms e-SNLI records into DeepA2 items. 
-
-    The structure of a raw e-SNLI item is:
-
-    .. code-block:: python
-
-       {
-           "premise": "pre" 
-           "hypothesis": "hyp" 
-           "label": "lab" 
-           "explanation_1": "exp1" 
-           "explanation_2": "exp2" 
-           "explanation_3": "exp3" 
-       }
-
-    In preprocessing, raw records are grouped by premise and split into sequences 
-    of length three with different labels (entailment-neutral-contradiction). Each of 
-    these triples is then merged into a single record:
-
-    .. code-block:: python
-
-       {
-           "premise": "pre",
-           "hypothesis_entlm": "hyp_e",
-           "hypothesis_neutr": "hyp_n", 
-           "hypothesis_contr": "hyp_c",
-           "entailment_entlm": ["exp_e1","exp_e2","exp_e3"], 
-           "entailment_neutr": ["exp_n1","exp_n2","exp_n3"], 
-           "entailment_contr": ["exp_c1","exp_c2","exp_c3"]
-       }
-
-    Finally, from each preprocessed record 32 DeepA2 items with varying source texts, arguments, reasons, 
-    conjectures and distractors are constructed (cf. ``eSNLIBuilder.configure_product()``). 
-    This example scheme illustrates the construction of a DeepA2 item from eSNLI:
-
-    .. code-block:: python
-       
-       DeepA2Item(
-           argument_source="not hyp_c. exp_n2. exp_e1.",
-           argdown_reconstruction=\"\"\"
-               (1) premise
-               (2) if hyp_c, then not premise
-               --
-               with modus tollens (from 1,2)
-               --
-               (3) not hyp_c
-           \"\"\",
-           reasons=[
-                   "exp_e1 (ref_reco: 2)" 
-               ],
-       )
-
+    eSNLI Builer preprocesses and transforms e-SNLI records into DeepA2 items.
     """
 
-
+    @staticmethod
     def preprocess(dataset:Dataset) -> Dataset:
         df_esnli = dataset.to_pandas()
         df_esnli = df_esnli.drop_duplicates()
@@ -256,8 +205,6 @@ class eSNLIBuilder(Builder):
         ## create dataset
         dataset = Dataset.from_pandas(df_esnli_final)
 
-        ## check features
-        assert dataset.column_names == list(PreprocessedESNLIExample.__annotations__.keys())
 
         return dataset
 

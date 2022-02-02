@@ -1,14 +1,18 @@
 from __future__ import annotations
 
-from deepa2datasets.builder import Builder, QuotedStatement, PreprocessedExample, RawExample
-from deepa2datasets.builder import DeepA2Item
+from deepa2datasets.core import Builder, DatasetLoader
+from deepa2datasets.core import DeepA2Item, QuotedStatement, PreprocessedExample, RawExample
 from deepa2datasets.config import template_dir, package_dir, moral_maze_config
 
 import random
 
-from datasets import Dataset
+from datasets import Dataset, DatasetDict
 from tqdm import tqdm
 tqdm.pandas()
+
+from pathlib import Path
+import requests, zipfile, io
+import json
 
 from networkx.readwrite import json_graph
 import networkx as nx
@@ -16,7 +20,7 @@ import networkx as nx
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 import re
 
-from typing import Any,List,Dict,Union
+from typing import Any,List,Dict,Union,Optional
 import logging
 
 
@@ -36,14 +40,55 @@ class PreprocessedAIFDBExample(PreprocessedExample):
     conclusions:Union[List[str],List[Any]]
 
 
+class AIFDBLoader(DatasetLoader):
+    def __init__(self, aifdb_config:Optional[Dict]=None):
+        self._aifdb_config = aifdb_config
+    def load_dataset(self) -> DatasetDict:
+        splits = self._aifdb_config.get('splits')
+
+        # download and unpack corpora
+        aifdb_dir = Path(self._aifdb_config.get('cache_dir'))
+        logging.info(f"Downloading aifdb dataset to {aifdb_dir} ...")
+        for url in self._aifdb_config.get('corpora',[]):
+            destination = Path(aifdb_dir, url.split("/")[-1])
+            if destination.is_dir():
+                logging.debug(f"Using cached {destination}.")
+            else:
+                destination.mkdir(parents=True, exist_ok=True)
+                logging.debug(f"Downloading {url}")
+                r = requests.get(url+"/download")
+                z = zipfile.ZipFile(io.BytesIO(r.content))
+                z.extractall(str(destination.resolve()))    
+                logging.debug(f"Saved {url} to {destination}.")
+
+        # load aifdb dataset from disk
+        data = {"nodeset":[],"text":[],"corpus":[]}
+        for corpus_dir in aifdb_dir.iterdir():
+            if corpus_dir.is_dir():
+                for nodefile in corpus_dir.iterdir():
+                    if nodefile.suffix == '.json':
+                        textfile = nodefile.parent / (nodefile.stem + ".txt")
+                        if textfile.exists():
+                            data["nodeset"].append(json.load(nodefile.open()))
+                            data["text"].append("".join(textfile.open().readlines()))
+                            data["corpus"].append(corpus_dir.name)
+        dataset = Dataset.from_dict(data)
+
+        # create train-validation-test splits 
+        dataset = dataset.train_test_split(test_size=(1-splits["train"])) # split once
+        dataset_tmp = dataset["test"].train_test_split(test_size=(splits["test"]/(splits["test"]+splits["validation"]))) # split test-split again
+        dataset = DatasetDict(train=dataset["train"],validation=dataset_tmp["train"],test=dataset_tmp["test"])
+
+
+        return dataset
+
+
 class AIFDBBuilder(Builder):
     """
-    The Concrete Builder classes follow the Builder interface and provide
-    specific implementations of the building steps. Your program may have
-    several variations of Builders, implemented differently.
+    AIFDBBuilder preprocesses, splits, and transforms AIFdb nodesets into DeepA2 items
     """
 
-
+    @staticmethod
     def preprocess(dataset:Dataset) -> Dataset:
 
         # clean html

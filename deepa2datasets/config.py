@@ -7,6 +7,7 @@ template_dir:Path = Path(package_dir,'..','templates').resolve()
 data_dir:Path = Path(package_dir,'..','data').resolve()
 
 moral_maze_config = {
+    'name':'moral-maze',
     'cache_dir': data_dir / "raw" / "aifdb" / "moral-maze",
     'templates_sp_ca': [
         'aifdb/source_paraphrase_ca-01.txt',
