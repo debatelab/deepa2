@@ -20,7 +20,8 @@ import logging
 from pathlib import Path
 import datetime
 
-from dataclasses import dataclass, asdict
+import dataclasses
+from dataclasses import dataclass
 
 import datasets
 from datasets import Dataset,DatasetDict
@@ -106,7 +107,8 @@ class DatasetLoader():
 
 
 class Builder(ABC):
-    """
+    """Defines interface for source-data specific builders.
+
     The Builder interface specifies a static preprocessing method as well as 
     methods for configuring and building DeepA2Items.
     """
@@ -126,7 +128,7 @@ class Builder(ABC):
         rendered as dicts
         """
         product = self._product
-        product = [asdict(deepa2item) for deepa2item in product]
+        product = [dataclasses.asdict(deepa2item) for deepa2item in product]
         self.reset()
         return product
 
@@ -138,7 +140,7 @@ class Builder(ABC):
     @abstractmethod
     def input(self) -> PreprocessedExample:
         """
-        The input of any builder is a proprocessed example
+        The input of any builder is a proprocessed example.
         """
         pass
 
@@ -170,33 +172,32 @@ class Builder(ABC):
 
 
 class Director:
-    """
-    The Director implements a universal pipeline for building DeepA2 datasets.
+    """Implements a universal pipeline for building DeepA2 datasets.
 
         Typical usage example:
+            .. code-block:: python
 
-        from deepa2datasets import core
+                from deepa2datasets import core
 
-        class MyBuilder(core.Builder):
-            pass
+                class MyBuilder(core.Builder):
+                    pass
 
-        class MyRawExample(core.RawExample):
-            pass
+                class MyRawExample(core.RawExample):
+                    pass
 
-        class MyPreprocessedExample(core.PreprocessedExample):
-            pass
+                class MyPreprocessedExample(core.PreprocessedExample):
+                    pass
 
-        director = core.Director()
-        builder = MyBuilder()
-        dataset_loader = core.DatasetLoader("some-dataset-at-hf-hub")
-        director.builder = builder
-        director.dataset_loader = dataset_loader
-        director.raw_example_type = MyRawExample
-        director.preprocessed_example_type = MyPreprocessedExample  
+                director = core.Director()
+                builder = MyBuilder()
+                dataset_loader = core.DatasetLoader("some-dataset-at-hf-hub")
+                director.builder = builder
+                director.dataset_loader = dataset_loader
+                director.raw_example_type = MyRawExample
+                director.preprocessed_example_type = MyPreprocessedExample  
 
-        director.transform(export_path="some-path")
-
-        """
+                director.transform(export_path="some-path")
+    """
 
     def __init__(self) -> None:
         self._builder = None
@@ -265,6 +266,11 @@ class Director:
         self.builder.postprocess_da2item()
         self.builder.add_metadata_da2item()
         da2items = self.builder.product # product is a list of dicts
+        # sanity checks
+        for da2item in da2items:
+            if list(da2item.keys()) != [field.name for field in dataclasses.fields(DeepA2Item)]:
+                logging.warning(f"Builder product contains item that is not a DeepA2 item: {da2item}")
+                raise ValueError("Builder product contains item that is not a DeepA2 item.")
         # transpose to dict of lists
         batched_result = {}
         for k in da2items[0].keys():
@@ -282,15 +288,15 @@ class Director:
 
         # 1. Load dataset
         dataset = self.dataset_loader.load_dataset()
+        # check splits
+        if not list(dataset.keys()) == ["train","validation","test"]:
+            logging.warning(f"Expected split ['train','validation','test'] but dataset has splits: {list(dataset.keys())}")
         ## check features
         for split in dataset.keys():
             if not (dataset[split].column_names == list(self.raw_example_type.__annotations__.keys())):
                 logging.error(f"Features of dataset with raw examples ({dataset.column_names}) don't match raw_example_type ({list(self.raw_example_type.__annotations__.keys())}).")
                 raise ValueError("Features of dataset with raw examples don't match raw_example_type.")
         logging.info(f"Loaded dataset: {dataset}")
-        # check splits
-        if not list(dataset.keys()) == ["train","validation","test"]:
-            logging.warning(f"Expected split ['train','validation','test'] but dataset has splits: {list(dataset.keys())}")
 
         # 2. Work on small subset for debugging
         if debug_size:
