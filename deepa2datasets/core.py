@@ -179,13 +179,13 @@ class Director:
                 from deepa2datasets import core
 
                 class MyBuilder(core.Builder):
-                    pass
+                    ...
 
                 class MyRawExample(core.RawExample):
-                    pass
+                    ...
 
                 class MyPreprocessedExample(core.PreprocessedExample):
-                    pass
+                    ...
 
                 director = core.Director()
                 builder = MyBuilder()
