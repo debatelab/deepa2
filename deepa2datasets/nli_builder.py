@@ -127,12 +127,14 @@ class eSNLIBuilder(Builder):
         df_esnli_tmp.reset_index(inplace=True)
         # for each premise, what is the minimum number of labels?
         df2 = df_esnli_tmp.groupby(["premise","label"]).size().unstack()
+        logging.debug(f"Premises associated with no label: {sum(df2.eq(0))}")
         df2.fillna(0,inplace=True)
         tqdm.write("Preprocessing 2/8")
         df_esnli_tmp["min_label_counts"] = df_esnli_tmp.premise.progress_apply(lambda x: int(df2.min(axis=1)[x]))     # df2.min(axis=1) tells us how many records for each premise will go into preprocessed esnli dataset
         # make sure that for each premise, we have the same number of records for labels 0,1,2
         tqdm.write("Preprocessing 3/8")
-        df_esnli_tmp = df_esnli_tmp.groupby(["premise","label"],as_index=False).progress_apply(lambda x: x.iloc[:x.min_label_counts.iloc[0]])
+        if len(df_esnli_tmp)>0:
+            df_esnli_tmp = df_esnli_tmp.groupby(["premise","label"],as_index=False).progress_apply(lambda x: x.iloc[:x.min_label_counts.iloc[0]])
         # reorder row so as to obtain alternating labels
         def reorder_premise_group(pg):
             return pg.groupby("label").apply(lambda g: g.reset_index(drop=True)).sort_index(level=1)
