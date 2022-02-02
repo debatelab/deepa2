@@ -2,7 +2,7 @@
 """
 from __future__ import annotations
 import logging 
-logging.basicConfig(filename='nli_builder.log', level=logging.DEBUG)
+logging.basicConfig(filename='nli_builder.log', level=logging.INFO)
 
 from deepa2datasets.core import Director, DatasetLoader
 from deepa2datasets.nli_builder import eSNLIBuilder, RawESNLIExample, PreprocessedESNLIExample
