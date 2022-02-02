@@ -52,7 +52,7 @@ class PreprocessedESNLIExample(PreprocessedExample):
 
 
 @dataclass
-class eSNLIConfiguration():
+class eSNLIItemConfiguration():
     """
     Datatype describing the build-configuration of a single 
     DeepA2Item in a DeepA2 datasets created from eSNLI data.
@@ -216,7 +216,7 @@ class eSNLIBuilder(Builder):
     # stores argument configurations used for creating DeepA2 data records 
     CONFIGURATIONS = {
         "entailment": [
-            eSNLIConfiguration(
+            eSNLIItemConfiguration(
                 label="entailment",
                 scheme_name = "modus ponens",
                 formal_scheme = ["{p}","{p} -> {q}", "{q}"],
@@ -224,25 +224,25 @@ class eSNLIBuilder(Builder):
             ),
         ],
         "contradiction": [
-            eSNLIConfiguration(
+            eSNLIItemConfiguration(
                 label="contradiction",
                 scheme_name = "modus ponens",
                 formal_scheme = ["{p}","{p} -> ¬{q}", "¬{q}"],
                 placeholders = {'p':"{premise}", "q":"{hypothesis}"},
             ),
-            eSNLIConfiguration(
+            eSNLIItemConfiguration(
                 label="contradiction",
                 scheme_name = "modus ponens",
                 formal_scheme = ["{p}","{p} -> ¬{q}", "¬{q}"],
                 placeholders = {'p':"{hypothesis}", "q":"{premise}"},
             ),
-            eSNLIConfiguration(
+            eSNLIItemConfiguration(
                 label="contradiction",
                 scheme_name = "modus tollens",
                 formal_scheme = ["{q}","{p} -> ¬{q}", "¬{p}"],
                 placeholders = {'q':"{premise}", "p":"{hypothesis}"},
             ),
-            eSNLIConfiguration(
+            eSNLIItemConfiguration(
                 label="contradiction",
                 scheme_name = "modus tollens",
                 formal_scheme = ["{q}","{p} -> ¬{q}", "¬{p}"],
