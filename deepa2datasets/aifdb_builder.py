@@ -1,19 +1,21 @@
-from __future__ import annotations
-from typing import Any,List,Dict,Union
-import logging
-import dataclasses
+"""Defines Builders for creating DeepA2 datasets from AIFdb corpora."""
 
-from pathlib import Path
-import requests, zipfile, io
+from __future__ import annotations
+
+import dataclasses
+import io
 import json
+import logging
+from pathlib import Path
 import random
+import re
+from typing import Any,List,Dict,Union
+import zipfile
 
 import jinja2
-import re
-
 import datasets
-
 import networkx as nx
+import requests
 
 from deepa2datasets.core import Builder, DatasetLoader
 from deepa2datasets.core import DeepA2Item, QuotedStatement, PreprocessedExample, RawExample
@@ -56,7 +58,7 @@ class AIFDBConfig:
 
 class AIFDBLoader(DatasetLoader):
 
-    def __init__(self, aifdb_config:AIFDBConfig=None):
+    def __init__(self, aifdb_config:AIFDBConfig=None): # pylint: disable=super-init-not-called
         self._aifdb_config = aifdb_config
     
     def load_dataset(self) -> datasets.DatasetDict:
@@ -64,18 +66,18 @@ class AIFDBLoader(DatasetLoader):
 
         # download and unpack corpora
         aifdb_dir = Path(self._aifdb_config.cache_dir)
-        logging.info(f"Downloading aifdb dataset to {aifdb_dir} ...")
+        logging.info("Downloading aifdb dataset to %s ...",aifdb_dir)
         for url in self._aifdb_config.corpora:
             destination = Path(aifdb_dir, url.split("/")[-1])
             if destination.is_dir():
-                logging.debug(f"Using cached {destination}.")
+                logging.debug("Using cached %s.",destination)
             else:
                 destination.mkdir(parents=True, exist_ok=True)
-                logging.debug(f"Downloading {url}")
+                logging.debug("Downloading %s",url)
                 request = requests.get(url+"/download")
                 with zipfile.ZipFile(io.BytesIO(request.content)) as zip_file:
                     zip_file.extractall(str(destination.resolve()))
-                logging.debug(f"Saved {url} to {destination}.")
+                logging.debug("Saved %s to %s.",url,destination)
 
         # load aifdb dataset from disk
         data = {"nodeset":[],"text":[],"corpus":[]}
@@ -117,6 +119,9 @@ class AIFDBBuilder(Builder):
         # split per inference
         def split_nodeset_per_inference(examples:Dict[str,List]) -> Dict[str,List]:
             inference_chunks = {k:[] for k in PreprocessedAIFDBExample.__annotations__.keys()} # pylint: disable=no-member
+            node_type:Dict = {}
+            node_text:Dict = {} 
+            graph = None
             # for each example
             for i,nodeset in enumerate(examples["nodeset"]):
                 # initialize graph representing the argumentative analysis
@@ -127,7 +132,7 @@ class AIFDBBuilder(Builder):
                 #logging.debug(f"node types: {node_type}")
                 node_text = nx.get_node_attributes(graph, "text")
                 if not (node_type and node_text):
-                    logging.warning(f"No node types / texts in nodeset no {i} in corpus {examples['corpus'][i]}: skipping this nodeset.")
+                    logging.warning("No node types / texts in nodeset no %s in corpus %s: skipping this nodeset.",i,examples['corpus'][i])
                     continue
 
                 # construct alternative_text by joining L-nodes
@@ -138,7 +143,8 @@ class AIFDBBuilder(Builder):
                 # use longer text
                 text = examples["text"][i]
                 if len(alternative_text) > 2*(len(text)-text.count("\n")):
-                    logging.debug(f"Using alternative text '{alternative_text}' rather than original text '{text}' in corpus '{examples['corpus'][i]}'.")
+                    logging.debug("Using alternative text '%s' rather than original text '%s' in corpus '%s'.",
+                        alternative_text,text,examples['corpus'][i])
                     text = alternative_text
 
                 # get all nodes of type CA / RA
@@ -179,7 +185,7 @@ class AIFDBBuilder(Builder):
                     inference_chunks["reasons"].append(reasons)
                     inference_chunks["conjectures"].append(conjectures)
                     inference_chunks["type"].append(node_type[inference_node])
-            logging.debug({k:len(v) for k,v in inference_chunks.items()})
+            logging.debug("Sizes of chunks: %s",{k:len(v) for k,v in inference_chunks.items()})
             return inference_chunks
         dataset = dataset.map(split_nodeset_per_inference, batched=True, remove_columns=dataset.column_names)
 
@@ -193,9 +199,9 @@ class AIFDBBuilder(Builder):
         """
         # check whether template files are accessible
         if not (template_dir / "aifdb").exists():
-            logging.debug(f"Package dir: {package_dir}")
-            logging.debug(f"Resolve template dir: {template_dir}")
-            logging.debug(f"List template dir: {list(template_dir.glob('*'))}")
+            logging.debug("Package dir: %s",package_dir)
+            logging.debug("Resolve template dir: %s",template_dir)
+            logging.debug("List template dir: %s",list(template_dir.glob('*')))
             err_m = f'No "aifdb" subdirectory in template_dir {template_dir.resolve()}'
             raise ValueError(err_m)
         self._env = jinja2.Environment(
@@ -204,8 +210,7 @@ class AIFDBBuilder(Builder):
         )
         self._aifdb_config = aifdb_config
 
-
-        self.reset()
+        super().__init__()
 
 
     @property

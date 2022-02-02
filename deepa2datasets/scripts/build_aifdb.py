@@ -1,16 +1,16 @@
-# build_aifdb.py
+"""Typer app for building DeepA2 datasets afrom AIFdb corpora."""
+
 from __future__ import annotations
-import logging 
-logging.basicConfig(filename='aifdb_builder.log', level=logging.INFO)
+import logging
+
+from typing import Optional
+import typer
 
 from deepa2datasets.core import Director
 from deepa2datasets.aifdb_builder import AIFDBBuilder,AIFDBLoader,AIFDBConfig,RawAIFDBExample,PreprocessedAIFDBExample
 from deepa2datasets.config import data_dir
 
-
-from typing import Optional
-import typer
-
+logging.basicConfig(filename='aifdb_builder.log', level=logging.INFO)
 
 app = typer.Typer()
 

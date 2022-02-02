@@ -1,22 +1,19 @@
 """Defines Builders for creating DeepA2 datasets from NLI-type data."""
+
 from __future__ import annotations
 
+import dataclasses
+import logging
+import random
 from typing import Any, List, Dict, Union
 import uuid
-import logging
-
-from dataclasses import dataclass, field
-
-import random
-
-import pandas as pd
-import numpy as np
-from tqdm import tqdm
-tqdm.pandas()
-
-import jinja2 
 
 import datasets
+import jinja2 
+import numpy as np
+import pandas as pd
+from tqdm import tqdm
+tqdm.pandas()
 
 from deepa2datasets.core import ArgdownStatement, Builder, Formalization, PreprocessedExample, QuotedStatement, RawExample
 from deepa2datasets.core import DeepA2Item
@@ -28,7 +25,7 @@ import deepa2datasets.jinjafilters as jjfilters
 class RawESNLIExample(RawExample):
     """
     Datatype describing a raw, unprocessed example
-    in a e-snli dataset. 
+    in a e-snli dataset.
     """
     premise:Union[str,List[str]]
     hypothesis:Union[str,List[str]]
@@ -51,7 +48,7 @@ class PreprocessedESNLIExample(PreprocessedExample):
     explanation_con:Union[List[str],List[Any]]
 
 
-@dataclass
+@dataclasses.dataclass
 class eSNLIItemConfiguration():
     """
     Datatype describing the build-configuration of a single 
@@ -62,8 +59,8 @@ class eSNLIItemConfiguration():
     argdown_err_template_path:str = None
     source_paraphrase_template_path:str = "esnli/source_paraphrase.txt"
     scheme_name:str = "modus ponens"
-    formal_scheme:List = field(default_factory=lambda: ["{p}","{p} -> {q}", "{q}"])
-    placeholders:Dict = field(default_factory=lambda: {'p':"{premise}", "q":"{hypothesis}"})
+    formal_scheme:List = dataclasses.field(default_factory=lambda: ["{p}","{p} -> {q}", "{q}"])
+    placeholders:Dict = dataclasses.field(default_factory=lambda: {'p':"{premise}", "q":"{hypothesis}"})
 
     _nl_schemes_dict = {
         "{p}": "{{ {p} | lower }}",
@@ -129,7 +126,7 @@ class eSNLIBuilder(Builder):
         df_esnli_tmp.reset_index(inplace=True)
         # for each premise, what is the minimum number of labels?
         df2 = df_esnli_tmp.groupby(["premise","label"]).size().unstack()
-        logging.debug(f"Premises associated with no label: {sum(df2.eq(0))}")
+        logging.debug("Premises associated with no label: %s",sum(df2.eq(0)))
         df2.fillna(0,inplace=True)
         tqdm.write("Preprocessing 2/8")
         df_esnli_tmp["min_label_counts"] = df_esnli_tmp.premise.progress_apply(lambda x: int(df2.min(axis=1)[x]))     # df2.min(axis=1) tells us how many records for each premise will go into preprocessed esnli dataset
@@ -204,7 +201,7 @@ class eSNLIBuilder(Builder):
         df_esnli_final["triple_id"] = np.repeat(np.arange(int(len(df_esnli_final)/3)),3)
         df_esnli_final = df_esnli_final.groupby("triple_id").progress_apply(merge_triple)
         df_esnli_final.reset_index(drop=True,inplace=True)
-        logging.debug(f"Head of preprocessed esnli dataframe:\n {df_esnli_final.head()}")
+        logging.debug("Head of preprocessed esnli dataframe:\n %s",df_esnli_final.head())
 
         ## create dataset
         dataset = datasets.Dataset.from_pandas(df_esnli_final)
@@ -257,9 +254,9 @@ class eSNLIBuilder(Builder):
         """
         # check whether template files are accessible
         if not (template_dir / "esnli").exists():
-            logging.debug(f"Package dir: {package_dir}")
-            logging.debug(f"Resolve template dir: {template_dir}")
-            logging.debug(f"List template dir: {list(template_dir.glob('*'))}")
+            logging.debug("Package dir: %s",package_dir)
+            logging.debug("Resolve template dir: %s",template_dir)
+            logging.debug("List template dir: %s",list(template_dir.glob('*')))
             err_m = f'No "esnli" subdirectory in template_dir {template_dir.resolve()}'
             raise ValueError(err_m)
         self._env = jinja2.Environment(
@@ -273,7 +270,7 @@ class eSNLIBuilder(Builder):
         self._env.filters['negation'] = jjfilters.negation
         self._env.filters['conditional'] = jjfilters.conditional
 
-        self.reset()
+        super().__init__()
 
 
     @property
@@ -420,7 +417,7 @@ class eSNLIBuilder(Builder):
         sp_template = self._env.get_template(config.source_paraphrase_template_path)
         record.source_paraphrase = (sp_template.render(premises=[d.text for d in record.reason_statements],conclusion=[d.text for d in record.conclusion_statements]))
         # title, context
-        # TODO
+        #   - so far missing
 
 
     def postprocess_da2item(self) -> None:

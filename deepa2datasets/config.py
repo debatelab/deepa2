@@ -1,6 +1,6 @@
 """Global configurations"""
 
-from pathlib import Path 
+from pathlib import Path
 
 package_dir = Path(__file__).parent.resolve()
 template_dir:Path = Path(package_dir,'..','templates').resolve()

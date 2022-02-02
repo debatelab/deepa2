@@ -1,14 +1,15 @@
 """Typer app for converting NLI-type data to DeepA2.
 """
 from __future__ import annotations
-import logging 
-logging.basicConfig(filename='nli_builder.log', level=logging.INFO)
+import logging
+
+from typing import Optional
+import typer
 
 from deepa2datasets.core import Director, DatasetLoader
 from deepa2datasets.nli_builder import eSNLIBuilder, RawESNLIExample, PreprocessedESNLIExample
 
-from typing import Optional
-import typer
+logging.basicConfig(filename='nli_builder.log', level=logging.INFO)
 
 app = typer.Typer()
 

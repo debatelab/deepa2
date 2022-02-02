@@ -13,15 +13,13 @@ means of the dataclass `DeepA2Item()`.
 """
 
 from __future__ import annotations
+
 from abc import ABC, abstractmethod
-from typing import Optional,Any,List,Dict,TypedDict,Type
-
-import logging
-from pathlib import Path
-import datetime
-
 import dataclasses
 from dataclasses import dataclass
+import logging
+from pathlib import Path
+from typing import Optional,Any,List,Dict,TypedDict,Type
 
 import datasets
 
@@ -118,7 +116,9 @@ class Builder(ABC):
         """
         Preprocesses the dataset.
         """
-        pass
+
+    def __init__(self):
+        self._product:List[DeepA2Item] = []
 
     @property
     def product(self) -> List[Dict]:
@@ -128,10 +128,10 @@ class Builder(ABC):
         """
         product = self._product
         product = [dataclasses.asdict(deepa2item) for deepa2item in product]
-        self.reset()
+        self._reset()
         return product
 
-    def reset(self) -> None:
+    def _reset(self) -> None:
         self._product:List[DeepA2Item] = []
 
 
@@ -141,7 +141,6 @@ class Builder(ABC):
         """
         The input of any builder is a proprocessed example.
         """
-        pass
 
     @input.setter
     @abstractmethod
@@ -153,19 +152,20 @@ class Builder(ABC):
 
     @abstractmethod
     def configure_product(self) -> None:
-        pass
+        """Configures product"""
 
     @abstractmethod
     def produce_da2item(self) -> None:
-        pass
+        """Produces product"""
 
     @abstractmethod
     def postprocess_da2item(self) -> None:
-        pass
+        """Postprocesses product"""
 
     @abstractmethod
     def add_metadata_da2item(self) -> None:
-        pass
+        """Adds metadata to product"""
+        
 
 
 
@@ -268,7 +268,7 @@ class Director:
         # sanity checks
         for da2item in da2items:
             if list(da2item.keys()) != [field.name for field in dataclasses.fields(DeepA2Item)]:
-                logging.warning(f"Builder product contains item that is not a DeepA2 item: {da2item}")
+                logging.warning("Builder product contains item that is not a DeepA2 item: %s", da2item)
                 raise ValueError("Builder product contains item that is not a DeepA2 item.")
         # transpose to dict of lists
         batched_result = {}
@@ -282,54 +282,56 @@ class Director:
         Implements the universal pipeline for transforming datasets.
         """
 
-        logging.info(f"#################################################################")
-        logging.info(f"Starting new {name} transformation: {datetime.datetime.now()}")
+        logging.info("#################################################################")
+        logging.info("Starting new %s transformation: {datetime.datetime.now()}",name)
 
         # 1. Load dataset
         dataset = self.dataset_loader.load_dataset()
         # check splits
         if not list(dataset.keys()) == ["train","validation","test"]:
-            logging.warning(f"Expected split ['train','validation','test'] but dataset has splits: {list(dataset.keys())}")
+            logging.warning("Expected split ['train','validation','test'] but dataset has splits: %s",list(dataset.keys()))
         ## check features
         for split in dataset.keys():
             if not (dataset[split].column_names == list(self.raw_example_type.__annotations__.keys())):
-                logging.error(f"Features of dataset with raw examples ({dataset.column_names}) don't match raw_example_type ({list(self.raw_example_type.__annotations__.keys())}).")
+                logging.error("Features of dataset with raw examples (%s) don't match raw_example_type (%s).",
+                    dataset.column_names,list(self.raw_example_type.__annotations__.keys()))
                 raise ValueError("Features of dataset with raw examples don't match raw_example_type.")
-        logging.info(f"Loaded dataset: {dataset}")
+        logging.info("Loaded dataset: %s",dataset)
 
         # 2. Work on small subset for debugging
         if debug_size:
             for split in dataset.keys():
                 dataset[split] = dataset[split].filter(lambda ex,idx: 1 if (idx<debug_size) else 0, with_indices=True)
-            logging.info(f"Debug mode, working with filtered raw dataset: {dataset}")
+            logging.info("Debug mode, working with filtered raw dataset: %s",dataset)
 
         # 3. Preprocess each split
         for split in dataset.keys():
-            logging.info(f"Preprocessing split {split} ...")
+            logging.info("Preprocessing split %s ...",split)
             dataset[split] = self.builder.preprocess(dataset[split])
         ## check features
         for split in dataset.keys():
             if not (dataset[split].column_names == list(self.preprocessed_example_type.__annotations__.keys())):
-                logging.error(f"Features of dataset with preprocessed examples ({dataset.column_names}) don't match raw_example_type ({list(self.preprocessed_example_type.__annotations__.keys())}).")
+                logging.error("Features of dataset with preprocessed examples (%s) don't match raw_example_type (%s).",
+                    dataset.column_names,list(self.preprocessed_example_type.__annotations__.keys()))
                 raise ValueError("Features of dataset with preprocessed examples don't match preprocessed_example_type.")
-        logging.info(f"Preprocessed dataset: {dataset}")
+        logging.info("Preprocessed dataset: %s",dataset)
 
         # 4. Transform
         dataset = dataset.map(self.process, batched=True, batch_size=1, remove_columns=list(self.preprocessed_example_type.__annotations__.keys()))
-        logging.info(f"Created new {name} deepa2 dataset: {dataset}")
+        logging.info("Created new %s deepa2 dataset: %s",name,dataset)
 
         # 5. Remove metadata
         if (not debug_size) and all("metadata" in dataset[split].column_names for split in dataset.keys()):
             dataset = dataset.remove_columns("metadata")
-            logging.info(f"Removed metadata from deepa2 dataset")
+            logging.info("Removed metadata from deepa2 dataset")
 
         # 6. Save to disk
         if export_path:
             path = Path(export_path,name)
             for split in dataset.keys():
-                logging.info(f"Saving {name} split {split} ...")
+                logging.info("Saving %s split %s ...",name,split)
                 file_name = f"{split}.parquet"
                 (path / split).mkdir(parents=True, exist_ok=True) # create dirs if necessary
                 dataset[split].to_parquet(path / split / file_name)
-            logging.info(f"Saved {name} deepa2 dataset to {path}.")
+            logging.info("Saved %s deepa2 dataset to %s.",name,path)
 

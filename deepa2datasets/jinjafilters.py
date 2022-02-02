@@ -1,4 +1,4 @@
-# jinjafilters.py
+"""Jinja2 filters used for constructing DeepA2 items from eSNLI data."""
 
 import random
 
