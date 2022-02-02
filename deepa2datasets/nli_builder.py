@@ -156,8 +156,8 @@ class eSNLIBuilder(Builder):
 
         ## Merge
         df_esnli_final:pd.DataFrame = pd.concat([
-            df_esnli_tmp2[list(RawESNLIExample.__annotations__.keys())],
-            df_esnli_tmp[list(RawESNLIExample.__annotations__.keys())]
+            df_esnli_tmp2[list(RawESNLIExample.__annotations__.keys())], # pylint: disable=no-member
+            df_esnli_tmp[list(RawESNLIExample.__annotations__.keys())]   # pylint: disable=no-member
         ])
         df_esnli_final.reset_index(drop=True,inplace=True)
 

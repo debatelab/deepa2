@@ -2,3 +2,4 @@ data
 notebooks/private
 *.log
 *__pycache__*
+.vscode

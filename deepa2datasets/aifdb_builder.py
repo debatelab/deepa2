@@ -116,7 +116,7 @@ class AIFDBBuilder(Builder):
 
         # split per inference
         def split_nodeset_per_inference(examples:Dict[str,List]) -> Dict[str,List]:
-            inference_chunks = {k:[] for k in PreprocessedAIFDBExample.__annotations__.keys()}
+            inference_chunks = {k:[] for k in PreprocessedAIFDBExample.__annotations__.keys()} # pylint: disable=no-member
             # for each example
             for i,nodeset in enumerate(examples["nodeset"]):
                 # initialize graph representing the argumentative analysis
