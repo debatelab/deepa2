@@ -10,7 +10,7 @@
 #       https://github.com/PyCQA/pydocstyle/pull/91)
 # E203: whitespace before ':' (not pep8 compliant according to Black)
 # W503: line break before binary operator (not pep8 compliant according to Black)
-
+# E501: line too long 
 
 [flake8]
 ignore = D202, D203, E203, W503
