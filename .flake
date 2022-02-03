@@ -14,7 +14,7 @@
 
 [flake8]
 ignore = D202, D203, E203, W503
-max-line-length = 100
+max-line-length = 150
 exclude =
     .git,
     notebooks,
