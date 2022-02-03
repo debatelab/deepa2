@@ -30,6 +30,7 @@ from deepa2datasets.config import template_dir, package_dir
 
 class RawAIFDBExample(RawExample):
     """dataclass of raw aifdb example"""
+
     nodeset: Union[str, List[str]]
     text: Union[str, List[str]]
     corpus: Union[str, List[str]]
@@ -37,6 +38,7 @@ class RawAIFDBExample(RawExample):
 
 class PreprocessedAIFDBExample(PreprocessedExample):
     """dataclass of preprocessed aifdb example"""
+
     text: Union[str, List[str]]
     corpus: Union[str, List[str]]
     type: Union[str, List[str]]
@@ -49,6 +51,7 @@ class PreprocessedAIFDBExample(PreprocessedExample):
 @dataclasses.dataclass
 class AIFDBConfig:
     """configuration class for AIFdb import"""
+
     name: str
     cache_dir: Path
     corpora: List[str]
@@ -145,7 +148,8 @@ class Utils:
         """extracts individual inferences from nodesets, and splits nodesets accordingly"""
 
         inference_chunks = {
-            k: [] for k in PreprocessedAIFDBExample.__annotations__.keys()  # pylint: disable=no-member
+            k: []
+            for k in PreprocessedAIFDBExample.__annotations__.keys()  # pylint: disable=no-member
         }
         node_type: Dict = {}
         node_text: Dict = {}
@@ -201,15 +205,11 @@ class Utils:
             for inference_node in inference_nodes:
                 # get conclusion (ids)
                 conclusions = [
-                    n
-                    for n in graph.successors(inference_node)
-                    if node_type[n] == "I"
+                    n for n in graph.successors(inference_node) if node_type[n] == "I"
                 ]
                 # get premises (ids)
                 premises = [
-                    n
-                    for n in graph.predecessors(inference_node)
-                    if node_type[n] == "I"
+                    n for n in graph.predecessors(inference_node) if node_type[n] == "I"
                 ]
 
                 # get conjectures and reasons (ids)
@@ -232,13 +232,9 @@ class Utils:
                 conjectures = [get_l_grandparent(n) for n in conclusions]
                 if conjectures:
                     # flatten
-                    conjectures = [
-                        x for l in conjectures if l for x in l  # noqa: E741
-                    ]
+                    conjectures = [x for l in conjectures if l for x in l]  # noqa: E741
                     # sort, ids correspond to location in text
-                    conjectures = sorted(
-                        conjectures
-                    )
+                    conjectures = sorted(conjectures)
                 reasons = [get_l_grandparent(n) for n in premises]
                 if reasons:
                     # flatten

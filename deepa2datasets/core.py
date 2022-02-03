@@ -34,6 +34,7 @@ class PreprocessedExample(TypedDict):
 @dataclasses.dataclass
 class QuotedStatement:
     """dataclass representing verbatim quote in da2item"""
+
     text: str
     starts_at: int
     ref_reco: int
@@ -42,6 +43,7 @@ class QuotedStatement:
 @dataclasses.dataclass
 class ArgdownStatement:
     """dataclass representing argdown statement in da2item"""
+
     text: str
     explicit: Any
     ref_reco: int
@@ -50,6 +52,7 @@ class ArgdownStatement:
 @dataclasses.dataclass
 class Formalization:
     """dataclass representing formalization in da2item"""
+
     form: str
     ref_reco: int
 
@@ -341,12 +344,16 @@ class Director:
         for split in dataset.keys():
             if not (
                 dataset[split].column_names
-                == list(self.raw_example_type.__annotations__.keys())  # pylint: disable=no-member
+                == list(
+                    self.raw_example_type.__annotations__.keys()
+                )  # pylint: disable=no-member
             ):
                 logging.error(
                     "Features of dataset with raw examples (%s) don't match raw_example_type (%s).",
                     dataset.column_names,
-                    list(self.raw_example_type.__annotations__.keys()),  # pylint: disable=no-member
+                    list(
+                        self.raw_example_type.__annotations__.keys()
+                    ),  # pylint: disable=no-member
                 )
                 raise ValueError(
                     "Features of dataset with raw examples don't match raw_example_type."
@@ -369,13 +376,17 @@ class Director:
         for split in dataset.keys():
             if not (
                 dataset[split].column_names
-                == list(self.preprocessed_example_type.__annotations__.keys())  # pylint: disable=no-member
+                == list(
+                    self.preprocessed_example_type.__annotations__.keys()  # pylint: disable=no-member
+                )
             ):
                 logging.error(
                     "Features of dataset with preprocessed examples"
                     "(%s) don't match raw_example_type (%s).",
                     dataset.column_names,
-                    list(self.preprocessed_example_type.__annotations__.keys()),  # pylint: disable=no-member
+                    list(
+                        self.preprocessed_example_type.__annotations__.keys()  # pylint: disable=no-member
+                    ),
                 )
                 raise ValueError(
                     "Features of dataset with preprocessed examples"
@@ -388,7 +399,9 @@ class Director:
             self.process,
             batched=True,
             batch_size=1,
-            remove_columns=list(self.preprocessed_example_type.__annotations__.keys()),  # pylint: disable=no-member
+            remove_columns=list(
+                self.preprocessed_example_type.__annotations__.keys()  # pylint: disable=no-member
+            ),
         )
         logging.info("Created new %s deepa2 dataset: %s", name, dataset)
 

@@ -196,10 +196,14 @@ class ESNLIBuilder(Builder):
         df_esnli_final: pd.DataFrame = pd.concat(
             [
                 df_esnli_tmp2[
-                    list(RawESNLIExample.__annotations__.keys())   # pylint: disable=no-member
+                    list(
+                        RawESNLIExample.__annotations__.keys()  # pylint: disable=no-member
+                    )
                 ],
                 df_esnli_tmp[
-                    list(RawESNLIExample.__annotations__.keys())  # pylint: disable=no-member
+                    list(
+                        RawESNLIExample.__annotations__.keys()  # pylint: disable=no-member
+                    )
                 ],
             ]
         )
@@ -393,7 +397,9 @@ class ESNLIBuilder(Builder):
 
         return data
 
-    def populate_record(self, idx: int) -> None:   # pylint: disable=too-many-statements, too-many-locals
+    def populate_record(  # pylint: disable=too-many-statements, too-many-locals
+        self, idx: int
+    ) -> None:
         """populates record at product index `int`"""
 
         record = self._product[idx]
@@ -470,14 +476,20 @@ class ESNLIBuilder(Builder):
         for i, sentence in enumerate(argument_list2[:-1]):
             if record.metadata["argument_mask"][i]:
                 argument_source_list.append(
-                    ["reason", QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=None)]
+                    [
+                        "reason",
+                        QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=None),
+                    ]
                 )
         # add conclusion
         i = 2
         if record.metadata["argument_mask"][i]:
             sentence = argument_list2[i]
             argument_source_list.append(
-                ["conjecture", QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=None)]
+                [
+                    "conjecture",
+                    QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=None),
+                ]
             )
         # shuffle
         random.shuffle(argument_source_list)
