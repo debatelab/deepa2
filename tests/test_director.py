@@ -1,41 +1,51 @@
 """tests the core.Director pipeline by means of a dummy builder"""
 
 import pathlib
-from typing import List,Union
+from typing import List, Union
 
 import datasets
 
-from deepa2datasets.core import DatasetLoader, Director, Builder, DeepA2Item, PreprocessedExample, RawExample
+from deepa2datasets.core import (
+    DatasetLoader,
+    Director,
+    Builder,
+    DeepA2Item,
+    PreprocessedExample,
+    RawExample,
+)
 
 
 RAW_EXAMPLES = {"text": ["premise conclusion", "another_premise another_conclusion"]}
 
 
 class DummyRawExample(RawExample):
-    text:Union[str,List[str]]
+    text: Union[str, List[str]]
+
 
 class DummyPreprocessedExample(PreprocessedExample):
-    text:Union[str,List[str]]
-    premise:Union[str,List[str]]
-    conclusion:Union[str,List[str]]
+    text: Union[str, List[str]]
+    premise: Union[str, List[str]]
+    conclusion: Union[str, List[str]]
+
 
 class DummyDatasetLoader(DatasetLoader):
     def load_dataset(self) -> datasets.DatasetDict:
         dataset = datasets.Dataset.from_dict(RAW_EXAMPLES)
-        splits = {"train":dataset, "validation":dataset, "test":dataset}
+        splits = {"train": dataset, "validation": dataset, "test": dataset}
         return datasets.DatasetDict(splits)
+
 
 class DummyBuilder(Builder):
     """Dummy builder for tests"""
 
     @staticmethod
-    def preprocess(dataset:datasets.Dataset) -> datasets.Dataset:
+    def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
         function = lambda example: DummyPreprocessedExample(
             text=example["text"],
             premise=example["text"].split()[0],
-            conclusion=example["text"].split()[-1]
+            conclusion=example["text"].split()[-1],
         )
-        dataset = dataset.map(function)        
+        dataset = dataset.map(function)
         return dataset
 
     @property
@@ -44,7 +54,7 @@ class DummyBuilder(Builder):
 
     @input.setter
     def input(self, preprocessed_example: DummyPreprocessedExample) -> None:
-        self._input = {k:v[0] for k,v in preprocessed_example.items()} # unbatch
+        self._input = {k: v[0] for k, v in preprocessed_example.items()}  # unbatch
 
     def configure_product(self) -> None:
         metadata = {
@@ -53,20 +63,23 @@ class DummyBuilder(Builder):
         self._product.append(DeepA2Item(metadata=metadata))
 
     def produce_da2item(self) -> None:
-        record = self._product[0] # we produce a single da2item per input only
+        record = self._product[0]  # we produce a single da2item per input only
         record.argument_source = self.input["text"]
-        record.argdown_reconstruction = f"{self.input['premise']}\n----\n{self.input['conclusion']}"
+        record.argdown_reconstruction = (
+            f"{self.input['premise']}\n----\n{self.input['conclusion']}"
+        )
 
     def postprocess_da2item(self) -> None:
-        record = self._product[0] # we produce a single da2item per input only
-        record.metadata["postprocessed"]=True
+        record = self._product[0]  # we produce a single da2item per input only
+        record.metadata["postprocessed"] = True
 
     def add_metadata_da2item(self) -> None:
-        record = self._product[0] # we produce a single da2item per input only
-        record.metadata["metadata_added"]=True
+        record = self._product[0]  # we produce a single da2item per input only
+        record.metadata["metadata_added"] = True
 
 
 def test_pipeline(tmp_path):
+    """tests the pipeline"""
     director = Director()
     builder = DummyBuilder()
     dataset_loader = DummyDatasetLoader()
@@ -78,25 +91,25 @@ def test_pipeline(tmp_path):
     director.transform(export_path=tmp_path, debug_size=10, name="dummy")
 
     da2_train_split = datasets.Dataset.from_parquet(
-        str(pathlib.Path(tmp_path,"dummy","train","train.parquet"))
+        str(pathlib.Path(tmp_path, "dummy", "train", "train.parquet"))
     )
 
     da2_train_split = da2_train_split.to_dict()
 
-    text_check = (da2_train_split["argument_source"] == RAW_EXAMPLES["text"])
+    text_check = da2_train_split["argument_source"] == RAW_EXAMPLES["text"]
     print(da2_train_split["argument_source"])
 
-    argdown_check = (da2_train_split["argdown_reconstruction"] == [
-        "premise\n----\nconclusion", 
-        "another_premise\n----\nanother_conclusion"
-    ])
+    argdown_check = da2_train_split["argdown_reconstruction"] == [
+        "premise\n----\nconclusion",
+        "another_premise\n----\nanother_conclusion",
+    ]
     print(da2_train_split["argdown_reconstruction"])
 
-    metadata_check = (da2_train_split["metadata"][0] == {
-            "configured": True,
-            "postprocessed": True,
-            "metadata_added": True
-        })
+    metadata_check = da2_train_split["metadata"][0] == {
+        "configured": True,
+        "postprocessed": True,
+        "metadata_added": True,
+    }
     print(da2_train_split["metadata"])
 
     assert text_check and argdown_check and metadata_check
