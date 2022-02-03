@@ -20,11 +20,13 @@ RAW_EXAMPLES = {"text": ["premise conclusion", "another_premise another_conclusi
 
 class DummyRawExample(RawExample):
     """Dummy raw example structure"""
+
     text: Union[str, List[str]]
 
 
 class DummyPreprocessedExample(PreprocessedExample):
     """Dummy preprocessed example structure"""
+
     text: Union[str, List[str]]
     premise: Union[str, List[str]]
     conclusion: Union[str, List[str]]
@@ -32,6 +34,7 @@ class DummyPreprocessedExample(PreprocessedExample):
 
 class DummyDatasetLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
     """Dummy dataset loader"""
+
     def load_dataset(self) -> datasets.DatasetDict:
         dataset = datasets.Dataset.from_dict(RAW_EXAMPLES)
         splits = {"train": dataset, "validation": dataset, "test": dataset}
@@ -50,6 +53,7 @@ class DummyBuilder(Builder):
                 conclusion=example["text"].split()[-1],
             )
             return preprocessed_example
+
         dataset = dataset.map(function)
         return dataset
 

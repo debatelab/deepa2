@@ -25,4 +25,4 @@ jobs:
           poetry run flake8 deepa2datasets/ tests/
           poetry run pylint deepa2datasets/
       - name: Check format with black
-        run: poetry run black --check .
+        run: poetry run black --check deepa2datasets/ tests/
