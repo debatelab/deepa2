@@ -15,7 +15,7 @@ from deepa2datasets.aifdb_builder import (
 )
 from deepa2datasets.config import data_dir
 
-logging.basicConfig(filename="aifdb_builder.log", level=logging.INFO)
+logging.basicConfig(filename="aifdb_builder.log", level=logging.DEBUG)
 
 app = typer.Typer()
 

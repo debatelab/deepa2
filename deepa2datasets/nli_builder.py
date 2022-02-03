@@ -14,8 +14,6 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-tqdm.pandas()
-
 from deepa2datasets.core import (
     ArgdownStatement,
     Builder,
@@ -27,6 +25,8 @@ from deepa2datasets.core import (
 )
 from deepa2datasets.config import template_dir, package_dir
 import deepa2datasets.jinjafilters as jjfilters
+
+tqdm.pandas()
 
 
 class RawESNLIExample(RawExample):
@@ -144,7 +144,7 @@ class eSNLIBuilder(Builder):
 
         # we split df in two parts which will be processed separately and are finally merged
 
-        ## Split 1
+        # Split 1
         # get all rows whose premise occurs more than 3 times
         df_esnli_tmp = df_esnli[df_esnli.premise_counts.gt(3)].copy()
         df_esnli_tmp.reset_index(inplace=True)
@@ -162,6 +162,7 @@ class eSNLIBuilder(Builder):
             df_esnli_tmp = df_esnli_tmp.groupby(
                 ["premise", "label"], as_index=False
             ).progress_apply(lambda x: x.iloc[: x.min_label_counts.iloc[0]])
+
         # reorder row so as to obtain alternating labels
         def reorder_premise_group(pg):
             return (
@@ -175,7 +176,7 @@ class eSNLIBuilder(Builder):
             reorder_premise_group
         )
 
-        ## Split 2
+        # Split 2
         # get all rows whose premise occurs exactly 3 times
         df_esnli_tmp2 = df_esnli[df_esnli.premise_counts.eq(3)].copy()
         # determine premises with incomplete labels (at least one label is missing)
@@ -190,7 +191,7 @@ class eSNLIBuilder(Builder):
         # retain only complete records
         df_esnli_tmp2 = df_esnli_tmp2[df_esnli_tmp2.complete]
 
-        ## Merge
+        # Merge
         df_esnli_final: pd.DataFrame = pd.concat(
             [
                 df_esnli_tmp2[
@@ -203,7 +204,7 @@ class eSNLIBuilder(Builder):
         )
         df_esnli_final.reset_index(drop=True, inplace=True)
 
-        ## Sanity check
+        # Sanity check
         tqdm.write("Preprocessing 7/8")
         for start in tqdm(range(0, df_esnli_final.shape[0], 3)):
             triple = df_esnli_final.iloc[start : start + 3]
@@ -255,7 +256,7 @@ class eSNLIBuilder(Builder):
             "Head of preprocessed esnli dataframe:\n %s", df_esnli_final.head()
         )
 
-        ## create dataset
+        # create dataset
         dataset = datasets.Dataset.from_pandas(df_esnli_final)
 
         return dataset
@@ -361,21 +362,19 @@ class eSNLIBuilder(Builder):
         for i, _ in enumerate(self._product):
             self.populate_record(i)
 
-    def populate_record(self, i) -> None:
-        record = self._product[i]
-        config = record.metadata["config"]
-
-        ### Initialize: mapping input data to argumentative roles
+    def _map_data_to_roles(self, record: DeepA2Item = None, idx: int = 0) -> Dict:
+        """initializes population of record"""
+        data = {}
         if record.metadata["label"] == "entailment":
             data = {
                 "premise": self.input["premise"],
                 "hypothesis": self.input["hypothesis_ent"],
                 "premise_cond": self.input["explanation_ent"][
-                    i % 3
+                    idx % 3
                 ],  # used in source text
                 "distractors": [
                     self.input["hypothesis_neu"],
-                    self.input["explanation_con"][i % 3],
+                    self.input["explanation_con"][idx % 3],
                 ],  # used in source text
             }
         else:  # label == contradiction
@@ -383,15 +382,26 @@ class eSNLIBuilder(Builder):
                 "premise": self.input["premise"],
                 "hypothesis": self.input["hypothesis_con"],
                 "premise_cond": self.input["explanation_con"][
-                    i % 3
+                    idx % 3
                 ],  # used in source text
                 "distractors": [
                     self.input["hypothesis_neu"],
-                    self.input["explanation_ent"][i % 3],
+                    self.input["explanation_ent"][idx % 3],
                 ],  # used in source text
             }
 
-        ### Step 1: construct argdown
+        return data
+
+    def populate_record(self, idx: int) -> None:
+        """populates record at product index `int`"""
+
+        record = self._product[idx]
+        config = record.metadata["config"]
+
+        # Initialize: mapping input data to argumentative roles
+        data = self._map_data_to_roles(record=record, idx=idx)
+
+        # Step 1: construct argdown
         # argument list
         argument_list = [
             self._env.from_string(t).render(data) for t in config.nl_scheme
@@ -413,7 +423,7 @@ class eSNLIBuilder(Builder):
             scheme=config.scheme_name,
         )
 
-        ### Step 2: premises and conclusion lists
+        # Step 2: premises and conclusion lists
         # premises
         record.premises = []
         for i in range(2):
@@ -430,7 +440,7 @@ class eSNLIBuilder(Builder):
         )
         record.conclusion = [argdown_statement]
 
-        ### Step 3: formalizations
+        # Step 3: formalizations
         # premises
         record.premises_formalized = []
         for i in range(2):
@@ -445,7 +455,7 @@ class eSNLIBuilder(Builder):
             k: v.format(**data) for k, v in config.placeholders.items()
         }
 
-        ### Step 4: source text, reasons, conjectures
+        # Step 4: source text, reasons, conjectures
 
         # 4.a) compile list with all sentences in source text
         argument_source_list = []
@@ -492,7 +502,7 @@ class eSNLIBuilder(Builder):
 
         record.argument_source = record.argument_source.strip(" ")
 
-        ### Step 5: gist, source_paraphrase, context, title
+        # Step 5: gist, source_paraphrase, context, title
         # use premise2 as gist
         record.gist = data["premise_cond"]
         # source paraphrase

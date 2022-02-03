@@ -329,7 +329,7 @@ class Director:
                 "Expected split ['train','validation','test'] but dataset has splits: %s",
                 list(dataset.keys()),
             )
-        ## check features
+        # check features
         for split in dataset.keys():
             if not (
                 dataset[split].column_names
@@ -357,7 +357,7 @@ class Director:
         for split in dataset.keys():
             logging.info("Preprocessing split %s ...", split)
             dataset[split] = self.builder.preprocess(dataset[split])
-        ## check features
+        # check features
         for split in dataset.keys():
             if not (
                 dataset[split].column_names

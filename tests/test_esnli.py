@@ -87,7 +87,7 @@ def test_esnli_conclusions_1(processed_examples):
     hyp_c = PREPROCESSED_EXAMPLES_1[0].get("hypothesis_con")
     print(conclusions)
     print(hyp_c)
-    assert not hyp_c in conclusions
+    assert hyp_c not in conclusions
 
 
 def test_esnli_conclusions_2(processed_examples):
@@ -96,7 +96,7 @@ def test_esnli_conclusions_2(processed_examples):
     hyp_n = PREPROCESSED_EXAMPLES_1[0].get("hypothesis_neu")
     print(conclusions)
     print(hyp_n)
-    assert not hyp_n in conclusions
+    assert hyp_n not in conclusions
 
 
 def test_esnli_conclusions_3(processed_examples):
