@@ -7,9 +7,13 @@ from typing import Optional
 import typer
 
 from deepa2datasets.core import Director, DatasetLoader
-from deepa2datasets.nli_builder import eSNLIBuilder, RawESNLIExample, PreprocessedESNLIExample
+from deepa2datasets.nli_builder import (
+    eSNLIBuilder,
+    RawESNLIExample,
+    PreprocessedESNLIExample,
+)
 
-logging.basicConfig(filename='nli_builder.log', level=logging.INFO)
+logging.basicConfig(filename="nli_builder.log", level=logging.INFO)
 
 app = typer.Typer()
 
@@ -22,14 +26,13 @@ def esnli(export_path: Optional[str] = None, debug_size: Optional[int] = None):
 
     director = Director()
     builder = eSNLIBuilder()
-    dataset_loader = DatasetLoader("esnli") # using default Dataset Loader
+    dataset_loader = DatasetLoader("esnli")  # using default Dataset Loader
     director.builder = builder
     director.dataset_loader = dataset_loader
     director.raw_example_type = RawESNLIExample
     director.preprocessed_example_type = PreprocessedESNLIExample
 
     director.transform(export_path=export_path, debug_size=debug_size, name=name)
-
 
 
 @app.command()

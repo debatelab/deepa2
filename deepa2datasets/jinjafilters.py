@@ -22,19 +22,22 @@ def lowerall(p):
     p = p.lower()
     return p
 
+
 def sal(p):
     p = p.strip(" .")
     p = lowerall(p)
     return p
 
-#negate
+
+# negate
 def negation(p):
     t = random.choice(templates_negation)
     p = t.format(sentence=sal(p))
     return p
 
+
 # create conditional
-def conditional(antecedent,consequent):
+def conditional(antecedent, consequent):
     t = random.choice(templates_conditional)
-    p = t.format(antecent=sal(antecedent),consequent=sal(consequent))
+    p = t.format(antecent=sal(antecedent), consequent=sal(consequent))
     return p

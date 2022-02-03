@@ -1,13 +1,13 @@
 """Defines core abstract classes and data structures for DeepA2 datasets.
 
-This module defines core abstract classes and data structures for building 
+This module defines core abstract classes and data structures for building
 DeepA2 datasets. The core classess follow the director-builder design pattern.
 The `Director` sets up a universal pipeline for transforming a raw dataset.
-Scripts that build concrete datasets only have to implement the abstract `Builder` 
+Scripts that build concrete datasets only have to implement the abstract `Builder`
 interface, specify `RawExample` and `PreprocessedExample`, and possibly adapt
 the `DatasetLoader`.
 
-In addition, the module defines the structure of DeepA2 datasets by 
+In addition, the module defines the structure of DeepA2 datasets by
 means of the dataclass `DeepA2Item()`.
 
 """
@@ -18,39 +18,41 @@ from abc import ABC, abstractmethod
 import dataclasses
 import logging
 from pathlib import Path
-from typing import Optional,Any,List,Dict,TypedDict,Type
+from typing import Optional, Any, List, Dict, TypedDict, Type
 
 import datasets
 
 
-
 class RawExample(TypedDict):
     pass
+
 
 class PreprocessedExample(TypedDict):
     pass
 
 
 @dataclasses.dataclass
-class QuotedStatement():
-    text:str
-    starts_at:int
-    ref_reco:int
-
-@dataclasses.dataclass
-class ArgdownStatement():
-    text:str
-    explicit:Any
-    ref_reco:int
-
-@dataclasses.dataclass
-class Formalization():
-    form:str
-    ref_reco:int
+class QuotedStatement:
+    text: str
+    starts_at: int
+    ref_reco: int
 
 
 @dataclasses.dataclass
-class DeepA2Item():
+class ArgdownStatement:
+    text: str
+    explicit: Any
+    ref_reco: int
+
+
+@dataclasses.dataclass
+class Formalization:
+    form: str
+    ref_reco: int
+
+
+@dataclasses.dataclass
+class DeepA2Item:
     """
     Dataclass defining the structure of a DeepA2 example.
 
@@ -83,39 +85,39 @@ class DeepA2Item():
 
     """
 
-    argument_source:str = None
+    argument_source: str = None
 
-    title:str = None
-    gist:str = None
-    source_paraphrase:str = None
-    context:str = None
+    title: str = None
+    gist: str = None
+    source_paraphrase: str = None
+    context: str = None
 
-    argdown_reconstruction:str = None
-    erroneous_argdown:str = None
+    argdown_reconstruction: str = None
+    erroneous_argdown: str = None
 
-    reason_statements:List[QuotedStatement] = None
-    conclusion_statements:List[QuotedStatement] = None
+    reason_statements: List[QuotedStatement] = None
+    conclusion_statements: List[QuotedStatement] = None
 
-    premises:List[ArgdownStatement] = None
-    intermediary_conclusions:List[ArgdownStatement] = None
-    conclusion:List[ArgdownStatement] = None
+    premises: List[ArgdownStatement] = None
+    intermediary_conclusions: List[ArgdownStatement] = None
+    conclusion: List[ArgdownStatement] = None
 
-    premises_formalized:List[Formalization] = None
-    intermediary_conclusions_formalized:List[Formalization] = None
-    conclusion_formalized:List[Formalization] = None
-    predicate_placeholders:List[str] = None
-    entity_placeholders:List[str] = None
-    misc_placeholders:List[str] = None
+    premises_formalized: List[Formalization] = None
+    intermediary_conclusions_formalized: List[Formalization] = None
+    conclusion_formalized: List[Formalization] = None
+    predicate_placeholders: List[str] = None
+    entity_placeholders: List[str] = None
+    misc_placeholders: List[str] = None
 
-    distractors:List[str] = None
-    metadata:Dict = None
+    distractors: List[str] = None
+    metadata: Dict = None
 
 
-
-class DatasetLoader():
+class DatasetLoader:
     """
     Provides a method for loading the raw dataset.
     """
+
     def __init__(self, *args, **kwargs):
         self._args = args
         self._kwargs = kwargs
@@ -130,24 +132,24 @@ class DatasetLoader():
 class Builder(ABC):
     """Defines interface for source-data specific builders.
 
-    The Builder interface specifies a static preprocessing method as well as 
+    The Builder interface specifies a static preprocessing method as well as
     methods for configuring and building DeepA2Items.
     """
 
     @staticmethod
     @abstractmethod
-    def preprocess(dataset:datasets.Dataset) -> datasets.Dataset:
+    def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
         """
         Preprocesses the dataset.
         """
 
     def __init__(self):
-        self._product:List[DeepA2Item] = []
+        self._product: List[DeepA2Item] = []
 
     @property
     def product(self) -> List[Dict]:
         """
-        The product of any builder is a list of DeepA2Items, 
+        The product of any builder is a list of DeepA2Items,
         rendered as dicts
         """
         product = self._product
@@ -156,8 +158,7 @@ class Builder(ABC):
         return product
 
     def _reset(self) -> None:
-        self._product:List[DeepA2Item] = []
-
+        self._product: List[DeepA2Item] = []
 
     @property
     @abstractmethod
@@ -189,37 +190,34 @@ class Builder(ABC):
     @abstractmethod
     def add_metadata_da2item(self) -> None:
         """Adds metadata to product"""
-        
-
-
 
 
 class Director:
     """Implements a universal pipeline for building DeepA2 datasets.
 
-        Typical usage example:
-            .. code-block:: python
+    Typical usage example:
+        .. code-block:: python
 
-                from deepa2datasets import core
+            from deepa2datasets import core
 
-                class MyBuilder(core.Builder):
-                    ...
+            class MyBuilder(core.Builder):
+                ...
 
-                class MyRawExample(core.RawExample):
-                    ...
+            class MyRawExample(core.RawExample):
+                ...
 
-                class MyPreprocessedExample(core.PreprocessedExample):
-                    ...
+            class MyPreprocessedExample(core.PreprocessedExample):
+                ...
 
-                director = core.Director()
-                builder = MyBuilder()
-                dataset_loader = core.DatasetLoader("some-dataset-at-hf-hub")
-                director.builder = builder
-                director.dataset_loader = dataset_loader
-                director.raw_example_type = MyRawExample
-                director.preprocessed_example_type = MyPreprocessedExample  
+            director = core.Director()
+            builder = MyBuilder()
+            dataset_loader = core.DatasetLoader("some-dataset-at-hf-hub")
+            director.builder = builder
+            director.dataset_loader = dataset_loader
+            director.raw_example_type = MyRawExample
+            director.preprocessed_example_type = MyPreprocessedExample
 
-                director.transform(export_path="some-path")
+            director.transform(export_path="some-path")
     """
 
     def __init__(self) -> None:
@@ -250,7 +248,6 @@ class Director:
         """
         self._dataset_loader = dataset_loader
 
-
     @property
     def raw_example_type(self) -> Type[RawExample]:
         return self._raw_example_type
@@ -262,100 +259,144 @@ class Director:
         """
         self._raw_example_type = raw_example_type
 
-
     @property
     def preprocessed_example_type(self) -> Type[RawExample]:
         return self._preprocessed_example_type
 
     @preprocessed_example_type.setter
-    def preprocessed_example_type(self, preprocessed_example_type: Type[RawExample]) -> None:
+    def preprocessed_example_type(
+        self, preprocessed_example_type: Type[RawExample]
+    ) -> None:
         """
         Class of preprocessed examples, used for sanity checks during execution of pipeline.
         """
         self._preprocessed_example_type = preprocessed_example_type
 
-
-    def process(self,batched_input:Dict[List]) -> Dict[List]:
+    def process(self, batched_input: Dict[List]) -> Dict[List]:
         """
         The Director provides a function that can me mapped over a dataset (requiring batches of size 1).
         """
-        if any(len(v)!=1 for v in batched_input.values()):
+        if any(len(v) != 1 for v in batched_input.values()):
             raise ValueError("Director.transform() can only handle batches of size 1.")
-        if len(set(len(v) for v in batched_input.values()))>1:
-            raise ValueError("Director.transform(): batched_input is not of uniform length.")
+        if len(set(len(v) for v in batched_input.values())) > 1:
+            raise ValueError(
+                "Director.transform(): batched_input is not of uniform length."
+            )
         self.builder.input = batched_input
         self.builder.configure_product()
         self.builder.produce_da2item()
         self.builder.postprocess_da2item()
         self.builder.add_metadata_da2item()
-        da2items = self.builder.product # product is a list of dicts
+        da2items = self.builder.product  # product is a list of dicts
         # sanity checks
         for da2item in da2items:
-            if list(da2item.keys()) != [field.name for field in dataclasses.fields(DeepA2Item)]:
-                logging.warning("Builder product contains item that is not a DeepA2 item: %s", da2item)
-                raise ValueError("Builder product contains item that is not a DeepA2 item.")
+            if list(da2item.keys()) != [
+                field.name for field in dataclasses.fields(DeepA2Item)
+            ]:
+                logging.warning(
+                    "Builder product contains item that is not a DeepA2 item: %s",
+                    da2item,
+                )
+                raise ValueError(
+                    "Builder product contains item that is not a DeepA2 item."
+                )
         # transpose to dict of lists
         batched_result = {}
         for k in da2items[0].keys():
             batched_result[k] = [record[k] for record in da2items]
         return batched_result
 
-
-    def transform(self, export_path: Optional[str] = None, debug_size: Optional[int] = None, name: str = "default_name") -> None:
+    def transform(
+        self,
+        export_path: Optional[str] = None,
+        debug_size: Optional[int] = None,
+        name: str = "default_name",
+    ) -> None:
         """
         Implements the universal pipeline for transforming datasets.
         """
 
-        logging.info("#################################################################")
-        logging.info("Starting new %s transformation: {datetime.datetime.now()}",name)
+        logging.info(
+            "#################################################################"
+        )
+        logging.info("Starting new %s transformation: {datetime.datetime.now()}", name)
 
         # 1. Load dataset
         dataset = self.dataset_loader.load_dataset()
         # check splits
-        if not list(dataset.keys()) == ["train","validation","test"]:
-            logging.warning("Expected split ['train','validation','test'] but dataset has splits: %s",list(dataset.keys()))
+        if list(dataset.keys()) != ["train", "validation", "test"]:
+            logging.warning(
+                "Expected split ['train','validation','test'] but dataset has splits: %s",
+                list(dataset.keys()),
+            )
         ## check features
         for split in dataset.keys():
-            if not (dataset[split].column_names == list(self.raw_example_type.__annotations__.keys())):
-                logging.error("Features of dataset with raw examples (%s) don't match raw_example_type (%s).",
-                    dataset.column_names,list(self.raw_example_type.__annotations__.keys()))
-                raise ValueError("Features of dataset with raw examples don't match raw_example_type.")
-        logging.info("Loaded dataset: %s",dataset)
+            if not (
+                dataset[split].column_names
+                == list(self.raw_example_type.__annotations__.keys())  # pylint: disable=no-member
+            ):
+                logging.error(
+                    "Features of dataset with raw examples (%s) don't match raw_example_type (%s).",
+                    dataset.column_names,
+                    list(self.raw_example_type.__annotations__.keys()),  # pylint: disable=no-member
+                )
+                raise ValueError(
+                    "Features of dataset with raw examples don't match raw_example_type."
+                )
+        logging.info("Loaded dataset: %s", dataset)
 
         # 2. Work on small subset for debugging
         if debug_size:
             for split in dataset.keys():
-                dataset[split] = dataset[split].filter(lambda ex,idx: 1 if (idx<debug_size) else 0, with_indices=True)
-            logging.info("Debug mode, working with filtered raw dataset: %s",dataset)
+                dataset[split] = dataset[split].filter(
+                    lambda ex, idx: 1 if (idx < debug_size) else 0, with_indices=True
+                )
+            logging.info("Debug mode, working with filtered raw dataset: %s", dataset)
 
         # 3. Preprocess each split
         for split in dataset.keys():
-            logging.info("Preprocessing split %s ...",split)
+            logging.info("Preprocessing split %s ...", split)
             dataset[split] = self.builder.preprocess(dataset[split])
         ## check features
         for split in dataset.keys():
-            if not (dataset[split].column_names == list(self.preprocessed_example_type.__annotations__.keys())):
-                logging.error("Features of dataset with preprocessed examples (%s) don't match raw_example_type (%s).",
-                    dataset.column_names,list(self.preprocessed_example_type.__annotations__.keys()))
-                raise ValueError("Features of dataset with preprocessed examples don't match preprocessed_example_type.")
-        logging.info("Preprocessed dataset: %s",dataset)
+            if not (
+                dataset[split].column_names
+                == list(self.preprocessed_example_type.__annotations__.keys())  # pylint: disable=no-member
+            ):
+                logging.error(
+                    "Features of dataset with preprocessed examples (%s) don't match raw_example_type (%s).",
+                    dataset.column_names,
+                    list(self.preprocessed_example_type.__annotations__.keys()),  # pylint: disable=no-member
+                )
+                raise ValueError(
+                    "Features of dataset with preprocessed examples don't match preprocessed_example_type."
+                )
+        logging.info("Preprocessed dataset: %s", dataset)
 
         # 4. Transform
-        dataset = dataset.map(self.process, batched=True, batch_size=1, remove_columns=list(self.preprocessed_example_type.__annotations__.keys()))
-        logging.info("Created new %s deepa2 dataset: %s",name,dataset)
+        dataset = dataset.map(
+            self.process,
+            batched=True,
+            batch_size=1,
+            remove_columns=list(self.preprocessed_example_type.__annotations__.keys()),  # pylint: disable=no-member
+        )
+        logging.info("Created new %s deepa2 dataset: %s", name, dataset)
 
         # 5. Remove metadata
-        if (not debug_size) and all("metadata" in dataset[split].column_names for split in dataset.keys()):
+        if (not debug_size) and all(
+            "metadata" in dataset[split].column_names for split in dataset.keys()
+        ):
             dataset = dataset.remove_columns("metadata")
             logging.info("Removed metadata from deepa2 dataset")
 
         # 6. Save to disk
         if export_path:
-            path = Path(export_path,name)
+            path = Path(export_path, name)
             for split in dataset.keys():
-                logging.info("Saving %s split %s ...",name,split)
+                logging.info("Saving %s split %s ...", name, split)
                 file_name = f"{split}.parquet"
-                (path / split).mkdir(parents=True, exist_ok=True) # create dirs if necessary
+                (path / split).mkdir(
+                    parents=True, exist_ok=True
+                )  # create dirs if necessary
                 dataset[split].to_parquet(path / split / file_name)
-            logging.info("Saved %s deepa2 dataset to %s.",name,path)
-
+            logging.info("Saved %s deepa2 dataset to %s.", name, path)
