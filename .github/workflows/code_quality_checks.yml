@@ -27,4 +27,4 @@ jobs:
       - name: Check format with black
         run: poetry run black --check deepa2datasets/ tests/
       - name: Check type hinting with mypy
-        run: poetry run mypy
+        run: poetry run mypy deepa2datasets/
