@@ -55,7 +55,7 @@ class Formalization:
 
 
 @dataclasses.dataclass
-class DeepA2Item:
+class DeepA2Item:  # pylint: disable=too-many-instance-attributes
     """
     Dataclass defining the structure of a DeepA2 example.
 
@@ -116,7 +116,7 @@ class DeepA2Item:
     metadata: Dict = None
 
 
-class DatasetLoader:
+class DatasetLoader:  # pylint: disable=too-few-public-methods
     """
     Provides a method for loading the raw dataset.
     """
