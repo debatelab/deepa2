@@ -40,11 +40,13 @@ class DummyBuilder(Builder):
 
     @staticmethod
     def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
-        function = lambda example: DummyPreprocessedExample(
-            text=example["text"],
-            premise=example["text"].split()[0],
-            conclusion=example["text"].split()[-1],
-        )
+        def function(example):
+            preprocessed_example = DummyPreprocessedExample(
+                text=example["text"],
+                premise=example["text"].split()[0],
+                conclusion=example["text"].split()[-1],
+            )
+            return preprocessed_example
         dataset = dataset.map(function)
         return dataset
 
