@@ -1,4 +1,4 @@
-![unit tests](https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg)
+![unit tests](https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg) ![code quality](https://github.com/debatelab/deepa2-datasets/actions/workflows/code_quality_checks.yml/badge.svg)
 
 # deepa2-datasets
 
