@@ -156,7 +156,7 @@ class ESNLIBuilder(Builder):
         df_esnli_tmp["min_label_counts"] = df_esnli_tmp.premise.progress_apply(
             lambda x: int(df2.min(axis=1)[x])
         )  # df2.min(axis=1) tells us how many records for each premise will go into
-           # preprocessed esnli dataset
+        # preprocessed esnli dataset
         # make sure that for each premise, we have the same number of records for labels 0,1,2
         tqdm.write("Preprocessing 3/8")
         if len(df_esnli_tmp) > 0:
