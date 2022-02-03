@@ -24,15 +24,16 @@ import datasets
 
 
 class RawExample(TypedDict):
-    pass
+    """Raw Example Empty TypedDict"""
 
 
 class PreprocessedExample(TypedDict):
-    pass
+    """Preprocessed Example Empty TypedDict"""
 
 
 @dataclasses.dataclass
 class QuotedStatement:
+    """dataclass representing verbatim quote in da2item"""
     text: str
     starts_at: int
     ref_reco: int
@@ -40,6 +41,7 @@ class QuotedStatement:
 
 @dataclasses.dataclass
 class ArgdownStatement:
+    """dataclass representing argdown statement in da2item"""
     text: str
     explicit: Any
     ref_reco: int
@@ -47,6 +49,7 @@ class ArgdownStatement:
 
 @dataclasses.dataclass
 class Formalization:
+    """dataclass representing formalization in da2item"""
     form: str
     ref_reco: int
 
@@ -228,6 +231,7 @@ class Director:
 
     @property
     def builder(self) -> Builder:
+        """builder property"""
         return self._builder
 
     @builder.setter
@@ -239,6 +243,7 @@ class Director:
 
     @property
     def dataset_loader(self) -> DatasetLoader:
+        """dataset_loader property"""
         return self._dataset_loader
 
     @dataset_loader.setter
@@ -250,6 +255,7 @@ class Director:
 
     @property
     def raw_example_type(self) -> Type[RawExample]:
+        """raw_eample_type property"""
         return self._raw_example_type
 
     @raw_example_type.setter
@@ -261,6 +267,7 @@ class Director:
 
     @property
     def preprocessed_example_type(self) -> Type[RawExample]:
+        """preprocessed_example_type"""
         return self._preprocessed_example_type
 
     @preprocessed_example_type.setter
@@ -274,7 +281,8 @@ class Director:
 
     def process(self, batched_input: Dict[List]) -> Dict[List]:
         """
-        The Director provides a function that can me mapped over a dataset (requiring batches of size 1).
+        The Director provides a function that can me mapped over a dataset
+        (requiring batches of size 1).
         """
         if any(len(v) != 1 for v in batched_input.values()):
             raise ValueError("Director.transform() can only handle batches of size 1.")
@@ -364,12 +372,14 @@ class Director:
                 == list(self.preprocessed_example_type.__annotations__.keys())  # pylint: disable=no-member
             ):
                 logging.error(
-                    "Features of dataset with preprocessed examples (%s) don't match raw_example_type (%s).",
+                    "Features of dataset with preprocessed examples"
+                    "(%s) don't match raw_example_type (%s).",
                     dataset.column_names,
                     list(self.preprocessed_example_type.__annotations__.keys()),  # pylint: disable=no-member
                 )
                 raise ValueError(
-                    "Features of dataset with preprocessed examples don't match preprocessed_example_type."
+                    "Features of dataset with preprocessed examples"
+                    "don't match preprocessed_example_type."
                 )
         logging.info("Preprocessed dataset: %s", dataset)
 

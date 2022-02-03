@@ -1,11 +1,11 @@
-"""tests the eSNLIBuilder"""
+"""tests the ESNLIBuilder"""
 from __future__ import annotations
 
 import pytest
 import datasets
 
 from deepa2datasets.nli_builder import (
-    eSNLIBuilder,
+    ESNLIBuilder,
     RawESNLIExample,
     PreprocessedESNLIExample,
 )
@@ -56,7 +56,7 @@ def test_esnli_preprocessor():
     for key in RawESNLIExample.__annotations__.keys():  # pylint: disable=no-member}
         raw_data[key] = [example[key] for example in RAW_EXAMPLES_1]
     dataset = datasets.Dataset.from_dict(raw_data)
-    dataset = eSNLIBuilder.preprocess(dataset)
+    dataset = ESNLIBuilder.preprocess(dataset)
     preprocessed_data = dataset.to_dict(batch_size=1, batched=True)  # return iterator
     preprocessed_examples = []
     for preprocessed_example in preprocessed_data:
@@ -71,7 +71,7 @@ def fixture_processed_examples():
     da2items = []
     for preprocessed_example in PREPROCESSED_EXAMPLES_1:
         batched_input = {k: [v] for k, v in preprocessed_example.items()}
-        builder = eSNLIBuilder()
+        builder = ESNLIBuilder()
         builder.input = batched_input
         builder.configure_product()
         builder.produce_da2item()

@@ -58,7 +58,7 @@ class PreprocessedESNLIExample(PreprocessedExample):
 
 
 @dataclasses.dataclass
-class eSNLIItemConfiguration:
+class ESNLIItemConfiguration:
     """
     Datatype describing the build-configuration of a single
     DeepA2Item in a DeepA2 datasets created from eSNLI data.
@@ -118,7 +118,7 @@ class eSNLIItemConfiguration:
         return nl_scheme
 
 
-class eSNLIBuilder(Builder):
+class ESNLIBuilder(Builder):
     """
     eSNLI Builer preprocesses and transforms e-SNLI records into DeepA2 items.
     """
@@ -155,7 +155,8 @@ class eSNLIBuilder(Builder):
         tqdm.write("Preprocessing 2/8")
         df_esnli_tmp["min_label_counts"] = df_esnli_tmp.premise.progress_apply(
             lambda x: int(df2.min(axis=1)[x])
-        )  # df2.min(axis=1) tells us how many records for each premise will go into preprocessed esnli dataset
+        )  # df2.min(axis=1) tells us how many records for each premise will go into
+           # preprocessed esnli dataset
         # make sure that for each premise, we have the same number of records for labels 0,1,2
         tqdm.write("Preprocessing 3/8")
         if len(df_esnli_tmp) > 0:
@@ -164,9 +165,9 @@ class eSNLIBuilder(Builder):
             ).progress_apply(lambda x: x.iloc[: x.min_label_counts.iloc[0]])
 
         # reorder row so as to obtain alternating labels
-        def reorder_premise_group(pg):
+        def reorder_premise_group(premise_group):
             return (
-                pg.groupby("label")
+                premise_group.groupby("label")
                 .apply(lambda g: g.reset_index(drop=True))
                 .sort_index(level=1)
             )
@@ -214,26 +215,26 @@ class eSNLIBuilder(Builder):
         # Merge triples, creating a PreprocessedESNLIExample from each
         tqdm.write("Preprocessing 8/8")
 
-        def merge_triple(x: pd.DataFrame):
+        def merge_triple(triple: pd.DataFrame):
             preprocessed_example = PreprocessedESNLIExample(
-                premise=x.iloc[0].premise,
-                hypothesis_ent=x[x.label.eq(0)].iloc[0].hypothesis,
-                hypothesis_neu=x[x.label.eq(1)].iloc[0].hypothesis,
-                hypothesis_con=x[x.label.eq(2)].iloc[0].hypothesis,
+                premise=triple.iloc[0].premise,
+                hypothesis_ent=triple[triple.label.eq(0)].iloc[0].hypothesis,
+                hypothesis_neu=triple[triple.label.eq(1)].iloc[0].hypothesis,
+                hypothesis_con=triple[triple.label.eq(2)].iloc[0].hypothesis,
                 explanation_ent=[
-                    x[x.label.eq(0)].iloc[0].explanation_1,
-                    x[x.label.eq(0)].iloc[0].explanation_2,
-                    x[x.label.eq(0)].iloc[0].explanation_3,
+                    triple[triple.label.eq(0)].iloc[0].explanation_1,
+                    triple[triple.label.eq(0)].iloc[0].explanation_2,
+                    triple[triple.label.eq(0)].iloc[0].explanation_3,
                 ],
                 explanation_neu=[
-                    x[x.label.eq(1)].iloc[0].explanation_1,
-                    x[x.label.eq(1)].iloc[0].explanation_2,
-                    x[x.label.eq(1)].iloc[0].explanation_3,
+                    triple[triple.label.eq(1)].iloc[0].explanation_1,
+                    triple[triple.label.eq(1)].iloc[0].explanation_2,
+                    triple[triple.label.eq(1)].iloc[0].explanation_3,
                 ],
                 explanation_con=[
-                    x[x.label.eq(2)].iloc[0].explanation_1,
-                    x[x.label.eq(2)].iloc[0].explanation_2,
-                    x[x.label.eq(2)].iloc[0].explanation_3,
+                    triple[triple.label.eq(2)].iloc[0].explanation_1,
+                    triple[triple.label.eq(2)].iloc[0].explanation_2,
+                    triple[triple.label.eq(2)].iloc[0].explanation_3,
                 ],
             )
             # fill in explanations in case they are missing
@@ -264,7 +265,7 @@ class eSNLIBuilder(Builder):
     # stores argument configurations used for creating DeepA2 data records
     CONFIGURATIONS = {
         "entailment": [
-            eSNLIItemConfiguration(
+            ESNLIItemConfiguration(
                 label="entailment",
                 scheme_name="modus ponens",
                 formal_scheme=["{p}", "{p} -> {q}", "{q}"],
@@ -272,25 +273,25 @@ class eSNLIBuilder(Builder):
             ),
         ],
         "contradiction": [
-            eSNLIItemConfiguration(
+            ESNLIItemConfiguration(
                 label="contradiction",
                 scheme_name="modus ponens",
                 formal_scheme=["{p}", "{p} -> ¬{q}", "¬{q}"],
                 placeholders={"p": "{premise}", "q": "{hypothesis}"},
             ),
-            eSNLIItemConfiguration(
+            ESNLIItemConfiguration(
                 label="contradiction",
                 scheme_name="modus ponens",
                 formal_scheme=["{p}", "{p} -> ¬{q}", "¬{q}"],
                 placeholders={"p": "{hypothesis}", "q": "{premise}"},
             ),
-            eSNLIItemConfiguration(
+            ESNLIItemConfiguration(
                 label="contradiction",
                 scheme_name="modus tollens",
                 formal_scheme=["{q}", "{p} -> ¬{q}", "¬{p}"],
                 placeholders={"q": "{premise}", "p": "{hypothesis}"},
             ),
-            eSNLIItemConfiguration(
+            ESNLIItemConfiguration(
                 label="contradiction",
                 scheme_name="modus tollens",
                 formal_scheme=["{q}", "{p} -> ¬{q}", "¬{p}"],
@@ -392,7 +393,7 @@ class eSNLIBuilder(Builder):
 
         return data
 
-    def populate_record(self, idx: int) -> None:
+    def populate_record(self, idx: int) -> None:   # pylint: disable=too-many-statements, too-many-locals
         """populates record at product index `int`"""
 
         record = self._product[idx]
@@ -460,23 +461,23 @@ class eSNLIBuilder(Builder):
         # 4.a) compile list with all sentences in source text
         argument_source_list = []
         # add distractors
-        for i, s in enumerate(data["distractors"]):
+        for i, sentence in enumerate(data["distractors"]):
             if record.metadata["distractor_mask"][i]:
-                argument_source_list.append(["distractor", s])
+                argument_source_list.append(["distractor", sentence])
         # add reasons
         argument_list2 = argument_list.copy()
         argument_list2[1] = data["premise_cond"]  # replace conditional
-        for i, s in enumerate(argument_list2[:-1]):
+        for i, sentence in enumerate(argument_list2[:-1]):
             if record.metadata["argument_mask"][i]:
                 argument_source_list.append(
-                    ["reason", QuotedStatement(text=s, ref_reco=i + 1, starts_at=None)]
+                    ["reason", QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=None)]
                 )
         # add conclusion
         i = 2
         if record.metadata["argument_mask"][i]:
-            s = argument_list2[i]
+            sentence = argument_list2[i]
             argument_source_list.append(
-                ["conjecture", QuotedStatement(text=s, ref_reco=i + 1, starts_at=None)]
+                ["conjecture", QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=None)]
             )
         # shuffle
         random.shuffle(argument_source_list)

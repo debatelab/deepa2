@@ -17,27 +17,28 @@ templates_negation = [
 ]
 
 
-# strip and lower case
-def lowerall(p):
-    p = p.lower()
-    return p
+def lowerall(sentence:str):
+    """to lower case"""
+    sentence = sentence.lower()
+    return sentence
 
 
-def sal(p):
-    p = p.strip(" .")
-    p = lowerall(p)
-    return p
+def sal(sentence:str):
+    """strip"""
+    sentence = sentence.strip(" .")
+    sentence = lowerall(sentence)
+    return sentence
 
 
-# negate
-def negation(p):
-    t = random.choice(templates_negation)
-    p = t.format(sentence=sal(p))
-    return p
+def negation(sentence:str):
+    """negate"""
+    template = random.choice(templates_negation)
+    sentence = template.format(sentence=sal(sentence))
+    return sentence
 
 
-# create conditional
 def conditional(antecedent, consequent):
-    t = random.choice(templates_conditional)
-    p = t.format(antecent=sal(antecedent), consequent=sal(consequent))
-    return p
+    """create conditional"""
+    template = random.choice(templates_conditional)
+    sentence = template.format(antecent=sal(antecedent), consequent=sal(consequent))
+    return sentence

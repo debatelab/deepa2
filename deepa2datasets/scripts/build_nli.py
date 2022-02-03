@@ -8,7 +8,7 @@ import typer
 
 from deepa2datasets.core import Director, DatasetLoader
 from deepa2datasets.nli_builder import (
-    eSNLIBuilder,
+    ESNLIBuilder,
     RawESNLIExample,
     PreprocessedESNLIExample,
 )
@@ -25,7 +25,7 @@ def esnli(export_path: Optional[str] = None, debug_size: Optional[int] = None):
     name = "esnli"
 
     director = Director()
-    builder = eSNLIBuilder()
+    builder = ESNLIBuilder()
     dataset_loader = DatasetLoader("esnli")  # using default Dataset Loader
     director.builder = builder
     director.dataset_loader = dataset_loader
@@ -37,6 +37,7 @@ def esnli(export_path: Optional[str] = None, debug_size: Optional[int] = None):
 
 @app.command()
 def goodbye(name: str, formal: bool = False):
+    """goodie"""
     if formal:
         typer.echo(f"Goodbye Ms. {name}. Have a good day.")
     else:

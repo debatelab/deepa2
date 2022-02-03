@@ -29,12 +29,14 @@ from deepa2datasets.config import template_dir, package_dir
 
 
 class RawAIFDBExample(RawExample):
+    """dataclass of raw aifdb example"""
     nodeset: Union[str, List[str]]
     text: Union[str, List[str]]
     corpus: Union[str, List[str]]
 
 
 class PreprocessedAIFDBExample(PreprocessedExample):
+    """dataclass of preprocessed aifdb example"""
     text: Union[str, List[str]]
     corpus: Union[str, List[str]]
     type: Union[str, List[str]]
@@ -70,7 +72,7 @@ class AIFDBConfig:
     )
 
 
-class AIFDBLoader(DatasetLoader):
+class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
     """loads aifdb raw data"""
 
     def __init__(
@@ -137,7 +139,9 @@ class Utils:
         return example
 
     @staticmethod
-    def split_nodeset_per_inference(examples: Dict[str, List]) -> Dict[str, List]:
+    def split_nodeset_per_inference(  # pylint: disable=too-many-locals
+        examples: Dict[str, List]
+    ) -> Dict[str, List]:
         """extracts individual inferences from nodesets, and splits nodesets accordingly"""
 
         inference_chunks = {
@@ -209,7 +213,7 @@ class Utils:
                 ]
 
                 # get conjectures and reasons (ids)
-                def get_L_grandparent(node):
+                def get_l_grandparent(node):
                     if node_type[node] != "I":
                         return None
                     ya_predecessors = [
@@ -225,7 +229,7 @@ class Utils:
                     ]
                     return l_grandparents
 
-                conjectures = [get_L_grandparent(n) for n in conclusions]
+                conjectures = [get_l_grandparent(n) for n in conclusions]
                 if conjectures:
                     # flatten
                     conjectures = [
@@ -235,7 +239,7 @@ class Utils:
                     conjectures = sorted(
                         conjectures
                     )
-                reasons = [get_L_grandparent(n) for n in premises]
+                reasons = [get_l_grandparent(n) for n in premises]
                 if reasons:
                     # flatten
                     reasons = [x for l in reasons if l for x in l]  # noqa: E741

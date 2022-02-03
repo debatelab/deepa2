@@ -113,13 +113,5 @@ def us2016(export_path: Optional[str] = None, debug_size: Optional[int] = None):
     )
 
 
-@app.command()
-def goodbye(name: str, formal: bool = False):
-    if formal:
-        typer.echo(f"Goodbye Ms. {name}. Have a good day.")
-    else:
-        typer.echo(f"Bye {name}!")
-
-
 if __name__ == "__main__":
     app()
