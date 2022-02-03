@@ -1,3 +1,5 @@
+![unit tests](https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg)
+
 # deepa2-datasets
 
 Resources for Creating, Importing and Managing DeepA2 Argument Analysis Framework Datasets.
