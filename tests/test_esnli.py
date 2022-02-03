@@ -1,3 +1,4 @@
+"""tests the eSNLIBuilder"""
 from __future__ import annotations
 
 import pytest
@@ -52,16 +53,16 @@ def test_esnli_preprocessor():
         raw_data[key] = [example[key] for example in RAW_EXAMPLES_1]
     dataset = datasets.Dataset.from_dict(raw_data)
     dataset = eSNLIBuilder.preprocess(dataset)
-    processed_data = dataset.to_dict(batch_size=1,batched=True) # return iterator
-    processed_examples = []
-    for processed_example in processed_data:
+    preprocessed_data = dataset.to_dict(batch_size=1,batched=True) # return iterator
+    preprocessed_examples = []
+    for preprocessed_example in preprocessed_data:
         # unbatch
-        processed_examples.append({k:v[0] for k,v in processed_example.items()})
-    assert processed_examples == PREPROCESSED_EXAMPLES_1
+        preprocessed_examples.append({k:v[0] for k,v in preprocessed_example.items()})
+    assert preprocessed_examples == PREPROCESSED_EXAMPLES_1
 
 
-@pytest.fixture
-def processed_examples():
+@pytest.fixture(name="processed_examples")
+def fixture_processed_examples():
     """processes examples """
     da2items = []
     for preprocessed_example in PREPROCESSED_EXAMPLES_1:
@@ -99,4 +100,3 @@ def test_esnli_conclusions_3(processed_examples):
     print(conclusions)
     print(hyp_e)
     assert (hyp_e in conclusions) and (len(set(conclusions))!=1)
-
