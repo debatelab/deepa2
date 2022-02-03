@@ -11,8 +11,8 @@ import uuid
 import datasets
 import jinja2
 import numpy as np
-import pandas as pd
-from tqdm import tqdm
+import pandas as pd  # type: ignore
+from tqdm import tqdm  # type: ignore
 
 from deepa2datasets.core import (
     ArgdownStatement,
@@ -66,7 +66,7 @@ class ESNLIItemConfiguration:
 
     label: str
     argdown_template_path: str = "esnli/argdown_generic.txt"
-    argdown_err_template_path: str = None
+    argdown_err_template_path: str = ""
     source_paraphrase_template_path: str = "esnli/source_paraphrase.txt"
     scheme_name: str = "modus ponens"
     formal_scheme: List = dataclasses.field(
@@ -126,7 +126,7 @@ class ESNLIBuilder(Builder):
     @staticmethod
     def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
         df_esnli = dataset.to_pandas()
-        df_esnli = df_esnli.drop_duplicates()
+        df_esnli = df_esnli.drop_duplicates()  # type: ignore
         # count explanations per row
         df_esnli["n_explanations"] = 3 - df_esnli[
             ["explanation_1", "explanation_2", "explanation_3"]
@@ -245,8 +245,8 @@ class ESNLIBuilder(Builder):
             # we assume that "explanation_1" is given
             for key in ["explanation_ent", "explanation_neu", "explanation_con"]:
                 for i in [1, 2]:
-                    if preprocessed_example[key][i] == "":
-                        preprocessed_example[key][i] = preprocessed_example[key][0]
+                    if preprocessed_example[key][i] == "":  # type: ignore
+                        preprocessed_example[key][i] = preprocessed_example[key][0]  # type: ignore
 
             return pd.Series(preprocessed_example)
 
@@ -330,16 +330,16 @@ class ESNLIBuilder(Builder):
     @property
     def input(self) -> PreprocessedESNLIExample:
         """
-        The input of any builder is a proprocessed example
+        The input of any builder is a preprocessed example
         """
-        return self._input
+        return self._input  # type: ignore
 
     @input.setter
     def input(self, preprocessed_example: PreprocessedESNLIExample) -> None:
         """
         Sets input for building next product.
         """
-        self._input = {k: v[0] for k, v in preprocessed_example.items()}
+        self._input = {k: v[0] for k, v in preprocessed_example.items()}  # type: ignore
 
     def configure_product(self) -> None:
         # populate product with configs
@@ -367,7 +367,7 @@ class ESNLIBuilder(Builder):
         for i, _ in enumerate(self._product):
             self.populate_record(i)
 
-    def _map_data_to_roles(self, record: DeepA2Item = None, idx: int = 0) -> Dict:
+    def _map_data_to_roles(self, record: DeepA2Item, idx: int = 0) -> Dict:
         """initializes population of record"""
         data = {}
         if record.metadata["label"] == "entailment":
@@ -458,7 +458,8 @@ class ESNLIBuilder(Builder):
         formalization = Formalization(form=config.formal_scheme[i], ref_reco=i + 1)
         record.conclusion_formalized = [formalization]
         # placeholders
-        record.misc_placeholders = {
+        record.misc_placeholders = [k for k, _ in config.placeholders.items()]
+        record.plchd_substitutions = {
             k: v.format(**data) for k, v in config.placeholders.items()
         }
 
@@ -478,7 +479,7 @@ class ESNLIBuilder(Builder):
                 argument_source_list.append(
                     [
                         "reason",
-                        QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=None),
+                        QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=-1),
                     ]
                 )
         # add conclusion
@@ -488,7 +489,7 @@ class ESNLIBuilder(Builder):
             argument_source_list.append(
                 [
                     "conjecture",
-                    QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=None),
+                    QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=-1),
                 ]
             )
         # shuffle

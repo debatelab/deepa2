@@ -107,6 +107,7 @@ From each preprocessed AIFdb example, we build a single DeepA2 item. It's straig
 - [ ] `predicate_placeholders`
 - [ ] `entity_placeholders`
 - [ ] `misc_placeholders`
+- [ ] `plchd_substitutions`
 
 
 

@@ -59,11 +59,11 @@ class DummyBuilder(Builder):
 
     @property
     def input(self) -> DummyPreprocessedExample:
-        return self._input
+        return self._input  # type: ignore
 
     @input.setter
     def input(self, preprocessed_example: DummyPreprocessedExample) -> None:
-        self._input = {k: v[0] for k, v in preprocessed_example.items()}  # unbatch
+        self._input = {k: v[0] for k, v in preprocessed_example.items()}  # type: ignore
 
     def configure_product(self) -> None:
         metadata = {
@@ -73,7 +73,7 @@ class DummyBuilder(Builder):
 
     def produce_da2item(self) -> None:
         record = self._product[0]  # we produce a single da2item per input only
-        record.argument_source = self.input["text"]
+        record.argument_source = str(self.input["text"])
         record.argdown_reconstruction = (
             f"{self.input['premise']}\n----\n{self.input['conclusion']}"
         )

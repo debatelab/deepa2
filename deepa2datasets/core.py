@@ -35,26 +35,26 @@ class PreprocessedExample(TypedDict):
 class QuotedStatement:
     """dataclass representing verbatim quote in da2item"""
 
-    text: str
-    starts_at: int
-    ref_reco: int
+    text: str = ""
+    starts_at: int = -1
+    ref_reco: int = -1
 
 
 @dataclasses.dataclass
 class ArgdownStatement:
     """dataclass representing argdown statement in da2item"""
 
-    text: str
-    explicit: Any
-    ref_reco: int
+    text: str = ""
+    explicit: Any = ""
+    ref_reco: int = -1
 
 
 @dataclasses.dataclass
 class Formalization:
     """dataclass representing formalization in da2item"""
 
-    form: str
-    ref_reco: int
+    form: str = ""
+    ref_reco: int = -1
 
 
 @dataclasses.dataclass
@@ -91,32 +91,47 @@ class DeepA2Item:  # pylint: disable=too-many-instance-attributes
 
     """
 
-    argument_source: str = None
+    argument_source: str = ""
 
-    title: str = None
-    gist: str = None
-    source_paraphrase: str = None
-    context: str = None
+    title: str = ""
+    gist: str = ""
+    source_paraphrase: str = ""
+    context: str = ""
 
-    argdown_reconstruction: str = None
-    erroneous_argdown: str = None
+    argdown_reconstruction: str = ""
+    erroneous_argdown: str = ""
 
-    reason_statements: List[QuotedStatement] = None
-    conclusion_statements: List[QuotedStatement] = None
+    reason_statements: List[QuotedStatement] = dataclasses.field(
+        default_factory=lambda: []
+    )
+    conclusion_statements: List[QuotedStatement] = dataclasses.field(
+        default_factory=lambda: []
+    )
 
-    premises: List[ArgdownStatement] = None
-    intermediary_conclusions: List[ArgdownStatement] = None
-    conclusion: List[ArgdownStatement] = None
+    premises: List[ArgdownStatement] = dataclasses.field(default_factory=lambda: [])
+    intermediary_conclusions: List[ArgdownStatement] = dataclasses.field(
+        default_factory=lambda: []
+    )
+    conclusion: List[ArgdownStatement] = dataclasses.field(default_factory=lambda: [])
 
-    premises_formalized: List[Formalization] = None
-    intermediary_conclusions_formalized: List[Formalization] = None
-    conclusion_formalized: List[Formalization] = None
-    predicate_placeholders: List[str] = None
-    entity_placeholders: List[str] = None
-    misc_placeholders: List[str] = None
+    premises_formalized: List[Formalization] = dataclasses.field(
+        default_factory=lambda: []
+    )
+    intermediary_conclusions_formalized: List[Formalization] = dataclasses.field(
+        default_factory=lambda: []
+    )
+    conclusion_formalized: List[Formalization] = dataclasses.field(
+        default_factory=lambda: []
+    )
+    predicate_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
+    entity_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
+    misc_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
+    plchd_substitutions: Dict[str, str] = dataclasses.field(
+        default_factory=lambda: {"": ""}
+    )
 
-    distractors: List[str] = None
-    metadata: Dict = None
+    distractors: List[str] = dataclasses.field(default_factory=lambda: [])
+    metadata: Dict = dataclasses.field(default_factory=lambda: {"": ""})
 
 
 class DatasetLoader:  # pylint: disable=too-few-public-methods
@@ -132,7 +147,11 @@ class DatasetLoader:  # pylint: disable=too-few-public-methods
         """
         Default DatasetLoader uses HF `Dataset.load_dataset`.
         """
-        return datasets.load_dataset(*self._args, **self._kwargs)
+        dataset = datasets.load_dataset(*self._args, **self._kwargs)
+        if not isinstance(dataset, datasets.DatasetDict):
+            raise ValueError("HF Dataset is not of type DatasetDict.")
+
+        return datasets.DatasetDict(dataset)
 
 
 class Builder(ABC):
@@ -158,22 +177,21 @@ class Builder(ABC):
         The product of any builder is a list of DeepA2Items,
         rendered as dicts
         """
-        product = self._product
-        product = [dataclasses.asdict(deepa2item) for deepa2item in product]
+        product = [dataclasses.asdict(deepa2item) for deepa2item in self._product]
         self._reset()
         return product
 
     def _reset(self) -> None:
-        self._product: List[DeepA2Item] = []
+        self._product = []
 
-    @property
+    @property  # type: ignore
     @abstractmethod
     def input(self) -> PreprocessedExample:
         """
         The input of any builder is a preprocessed example.
         """
 
-    @input.setter
+    @input.setter  # type: ignore
     @abstractmethod
     def input(self, preprocessed_example: PreprocessedExample) -> None:
         """
@@ -227,10 +245,10 @@ class Director:
     """
 
     def __init__(self) -> None:
-        self._builder = None
-        self._dataset_loader = None
-        self._raw_example_type = None
-        self._builder = None
+        self._builder: Builder
+        self._dataset_loader: DatasetLoader
+        self._raw_example_type: Type[RawExample]
+        self._preprocessed_example_type: Type[PreprocessedExample]
 
     @property
     def builder(self) -> Builder:
@@ -258,7 +276,7 @@ class Director:
 
     @property
     def raw_example_type(self) -> Type[RawExample]:
-        """raw_eample_type property"""
+        """raw_example_type property"""
         return self._raw_example_type
 
     @raw_example_type.setter
@@ -269,20 +287,20 @@ class Director:
         self._raw_example_type = raw_example_type
 
     @property
-    def preprocessed_example_type(self) -> Type[RawExample]:
+    def preprocessed_example_type(self) -> Type[PreprocessedExample]:
         """preprocessed_example_type"""
         return self._preprocessed_example_type
 
     @preprocessed_example_type.setter
     def preprocessed_example_type(
-        self, preprocessed_example_type: Type[RawExample]
+        self, preprocessed_example_type: Type[PreprocessedExample]
     ) -> None:
         """
         Class of preprocessed examples, used for sanity checks during execution of pipeline.
         """
         self._preprocessed_example_type = preprocessed_example_type
 
-    def process(self, batched_input: Dict[List]) -> Dict[List]:
+    def process(self, batched_input: Dict[str, List]) -> Dict[str, List]:
         """
         The Director provides a function that can me mapped over a dataset
         (requiring batches of size 1).
@@ -293,7 +311,7 @@ class Director:
             raise ValueError(
                 "Director.transform(): batched_input is not of uniform length."
             )
-        self.builder.input = batched_input
+        self.builder.input = batched_input  # type: ignore
         self.builder.configure_product()
         self.builder.produce_da2item()
         self.builder.postprocess_da2item()

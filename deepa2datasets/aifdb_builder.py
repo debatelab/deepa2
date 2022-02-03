@@ -14,7 +14,7 @@ import zipfile
 
 import jinja2
 import datasets
-import networkx as nx
+import networkx as nx  # type: ignore
 import requests
 
 from deepa2datasets.core import (
@@ -79,7 +79,7 @@ class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
     """loads aifdb raw data"""
 
     def __init__(
-        self, aifdb_config: AIFDBConfig = None
+        self, aifdb_config: AIFDBConfig
     ):  # pylint: disable=super-init-not-called
         self._aifdb_config = aifdb_config
 
@@ -102,7 +102,7 @@ class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
                 logging.debug("Saved %s to %s.", url, destination)
 
         # load aifdb dataset from disk
-        data = {"nodeset": [], "text": [], "corpus": []}
+        data: Dict[str, List] = {"nodeset": [], "text": [], "corpus": []}
         for corpus_dir in aifdb_dir.iterdir():
             if corpus_dir.is_dir():
                 for nodefile in corpus_dir.iterdir():
@@ -115,19 +115,19 @@ class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
         dataset = datasets.Dataset.from_dict(data)
 
         # create train-validation-test splits
-        dataset = dataset.train_test_split(
+        dataset_split1 = dataset.train_test_split(
             test_size=(1 - splits["train"])
         )  # split once
-        dataset_tmp = dataset["test"].train_test_split(
+        dataset_split2 = dataset_split1["test"].train_test_split(
             test_size=(splits["test"] / (splits["test"] + splits["validation"]))
         )  # split test-split again
-        dataset = datasets.DatasetDict(
-            train=dataset["train"],
-            validation=dataset_tmp["train"],
-            test=dataset_tmp["test"],
+        dataset_dict = datasets.DatasetDict(
+            train=dataset_split1["train"],
+            validation=dataset_split2["train"],
+            test=dataset_split2["test"],
         )
 
-        return dataset
+        return dataset_dict
 
 
 class Utils:
@@ -147,7 +147,7 @@ class Utils:
     ) -> Dict[str, List]:
         """extracts individual inferences from nodesets, and splits nodesets accordingly"""
 
-        inference_chunks = {
+        inference_chunks: Dict[str, List] = {
             k: []
             for k in PreprocessedAIFDBExample.__annotations__.keys()  # pylint: disable=no-member
         }
@@ -178,23 +178,17 @@ class Utils:
                 continue
 
             # construct alternative_text by joining L-nodes
-            alternative_text = [
+            alternative_text_list = [
                 node_text.get(n, "")
                 for n in graph.nodes
                 if node_type.get(n, None) == "L"
             ]  # L-nodes
-            alternative_text = " ".join(alternative_text)
+            alternative_text = " ".join(alternative_text_list)
             alternative_text = alternative_text.replace("  ", " ")
 
             # use longer text
             text = examples["text"][i]
             if len(alternative_text) > 2 * (len(text) - text.count("\n")):
-                logging.debug(
-                    "Using alternative text '%s' rather than original text '%s' in corpus '%s'.",
-                    alternative_text,
-                    text,
-                    examples["corpus"][i],
-                )
                 text = alternative_text
 
             # get all nodes of type CA / RA
@@ -296,7 +290,8 @@ class AIFDBBuilder(Builder):
             loader=jinja2.FileSystemLoader(template_dir),
             autoescape=jinja2.select_autoescape(),
         )
-        self._aifdb_config = aifdb_config
+        self._aifdb_config: AIFDBConfig = aifdb_config
+        self._input: PreprocessedAIFDBExample
 
         super().__init__()
 
@@ -313,7 +308,7 @@ class AIFDBBuilder(Builder):
         Sets input for building next product.
         """
         # unbatch:
-        self._input = {k: v[0] for k, v in preprocessed_example.items()}
+        self._input = {k: v[0] for k, v in preprocessed_example.items()}  # type: ignore
 
     def configure_product(self) -> None:
         # create configuration and add empty da2 item to product
@@ -333,14 +328,14 @@ class AIFDBBuilder(Builder):
     def produce_da2item(self) -> None:
         # we produce a single da2item per input only
         record = self._product[0]
-        record.argument_source = self.input["text"]
+        record.argument_source = str(self.input["text"])
         record.reason_statements = [
-            QuotedStatement(text=r, starts_at=None, ref_reco=e + 1)
+            QuotedStatement(text=r, starts_at=-1, ref_reco=e + 1)
             for e, r in enumerate(self.input["reasons"])
         ]
         n_reas = len(record.reason_statements)
         record.conclusion_statements = [
-            QuotedStatement(text=j, starts_at=None, ref_reco=n_reas + 1)
+            QuotedStatement(text=j, starts_at=-1, ref_reco=n_reas + 1)
             for j in self.input["conjectures"]
         ]
         # source paraphrase

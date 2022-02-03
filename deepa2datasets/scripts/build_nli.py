@@ -29,8 +29,8 @@ def esnli(export_path: Optional[str] = None, debug_size: Optional[int] = None):
     dataset_loader = DatasetLoader("esnli")  # using default Dataset Loader
     director.builder = builder
     director.dataset_loader = dataset_loader
-    director.raw_example_type = RawESNLIExample
-    director.preprocessed_example_type = PreprocessedESNLIExample
+    director.raw_example_type = RawESNLIExample  # type: ignore
+    director.preprocessed_example_type = PreprocessedESNLIExample  # type: ignore
 
     director.transform(export_path=export_path, debug_size=debug_size, name=name)
 

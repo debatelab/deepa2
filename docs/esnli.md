@@ -133,6 +133,7 @@ Thirdly, we construct lists of reasons and conjectures, which identify explicitl
 - [ ] `predicate_placeholders`
 - [ ] `entity_placeholders`
 - [x] `misc_placeholders`
+- [x] `plchd_substitutions`
 
 
 
