@@ -13,7 +13,7 @@ from deepa2datasets.nli_builder import (
     PreprocessedESNLIExample,
 )
 
-logging.basicConfig(filename="nli_builder.log", level=logging.INFO)
+logging.basicConfig(filename="nli_builder.log", level=logging.DEBUG)
 
 app = typer.Typer()
 

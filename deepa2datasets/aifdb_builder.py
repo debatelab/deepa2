@@ -85,6 +85,28 @@ class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
     ):  # pylint: disable=super-init-not-called
         self._aifdb_config = aifdb_config
 
+    @staticmethod
+    def _read_textfile(textfile: Path) -> str:
+        """tries to read text file"""
+        lines: List[str] = []
+        if textfile.exists():
+            for enc in ["utf8", "ascii", "windows-1252", "cp500"]:
+                if lines:
+                    break
+                try:
+                    lines = textfile.open(encoding=enc).readlines()
+                except UnicodeDecodeError as err:
+                    logging.debug(
+                        "Couldn't decode %s as %s, error: %s", textfile, enc, err
+                    )
+        text = "No source text."
+        if lines:
+            text = "".join(lines)
+        else:
+            logging.warning("Couldn't decode %s, using dummy text.", textfile)
+
+        return text
+
     def load_dataset(self) -> datasets.DatasetDict:
         splits = self._aifdb_config.splits
 
@@ -110,10 +132,9 @@ class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
                 for nodefile in corpus_dir.iterdir():
                     if nodefile.suffix == ".json":
                         textfile = nodefile.parent / (nodefile.stem + ".txt")
-                        if textfile.exists():
-                            data["nodeset"].append(json.load(nodefile.open()))
-                            data["text"].append("".join(textfile.open().readlines()))
-                            data["corpus"].append(corpus_dir.name)
+                        data["nodeset"].append(json.load(nodefile.open()))
+                        data["text"].append(self._read_textfile(textfile))
+                        data["corpus"].append(corpus_dir.name)
         dataset = datasets.Dataset.from_dict(data)
 
         # create train-validation-test splits
@@ -194,6 +215,9 @@ class _Utils:
             text = examples["text"][i]
             if len(alternative_text) > 2 * (len(text) - text.count("\n")):
                 text = alternative_text
+                logging.debug(
+                    "Using alternative text with length %s", len(alternative_text)
+                )
 
             # get all nodes of type CA / RA
             inference_nodes = [
@@ -203,11 +227,15 @@ class _Utils:
             for inference_node in inference_nodes:
                 # get conclusion (ids)
                 conclusions = [
-                    n for n in graph.successors(inference_node) if node_type[n] == "I"
+                    n
+                    for n in graph.successors(inference_node)
+                    if node_type.get(n) == "I"
                 ]
                 # get premises (ids)
                 premises = [
-                    n for n in graph.predecessors(inference_node) if node_type[n] == "I"
+                    n
+                    for n in graph.predecessors(inference_node)
+                    if node_type.get(n) == "I"
                 ]
 
                 # get conjectures and reasons (ids)
@@ -218,7 +246,7 @@ class _Utils:
                         )
                         return []
                     ya_predecessors = [
-                        n for n in graph.predecessors(node) if node_type[n] == "YA"
+                        n for n in graph.predecessors(node) if node_type.get(n) == "YA"
                     ]
                     if not ya_predecessors:
                         logging.warning(
@@ -229,7 +257,7 @@ class _Utils:
                         n
                         for m in ya_predecessors
                         for n in graph.predecessors(m)
-                        if node_type[n] == "L" and node_text[n] != "analyses"
+                        if node_type.get(n) == "L" and node_text.get(n) != "analyses"
                     ]
                     if not l_grandparents:
                         logging.warning(
@@ -250,10 +278,10 @@ class _Utils:
                     # sort, ids correspond to location in text
                     reasons = sorted(reasons)
                 # subst text for ids
-                conjectures = [node_text[n] for n in conjectures]
-                reasons = [node_text[n] for n in reasons]
-                conclusions = [node_text[n] for n in conclusions]
-                premises = [node_text[n] for n in premises]
+                conjectures = [node_text.get(n, "") for n in conjectures]
+                reasons = [node_text.get(n, "") for n in reasons]
+                conclusions = [node_text.get(n, "") for n in conclusions]
+                premises = [node_text.get(n, "") for n in premises]
                 # create new record
                 inference_chunks["text"].append(text)
                 inference_chunks["corpus"].append(corpus)
@@ -334,15 +362,17 @@ class AIFDBBuilder(Builder):
         # we produce a single da2item per input only
         record = self._product[0]
         record.argument_source = str(self.input.text)
-        record.reason_statements = [
-            QuotedStatement(text=r, starts_at=-1, ref_reco=e + 1)
-            for e, r in enumerate(self.input.reasons)
-        ]
+        if self.input.reasons:
+            record.reason_statements = [
+                QuotedStatement(text=r, starts_at=-1, ref_reco=e + 1)
+                for e, r in enumerate(self.input.reasons)
+            ]
         n_reas = len(record.reason_statements)
-        record.conclusion_statements = [
-            QuotedStatement(text=j, starts_at=-1, ref_reco=n_reas + 1)
-            for j in self.input.conjectures
-        ]
+        if self.input.conjectures:
+            record.conclusion_statements = [
+                QuotedStatement(text=j, starts_at=-1, ref_reco=n_reas + 1)
+                for j in self.input.conjectures
+            ]
         # source paraphrase
         sp_template = self._env.get_template(record.metadata["config"]["sp_template"])
         record.source_paraphrase = sp_template.render(

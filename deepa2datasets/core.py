@@ -111,26 +111,28 @@ class DeepA2Item:  # pylint: disable=too-many-instance-attributes
     erroneous_argdown: str = ""
 
     reason_statements: List[QuotedStatement] = dataclasses.field(
-        default_factory=lambda: []
+        default_factory=lambda: [QuotedStatement()]
     )
     conclusion_statements: List[QuotedStatement] = dataclasses.field(
-        default_factory=lambda: []
+        default_factory=lambda: [QuotedStatement()]
     )
 
     premises: List[ArgdownStatement] = dataclasses.field(default_factory=lambda: [])
     intermediary_conclusions: List[ArgdownStatement] = dataclasses.field(
-        default_factory=lambda: []
+        default_factory=lambda: [ArgdownStatement()]
     )
-    conclusion: List[ArgdownStatement] = dataclasses.field(default_factory=lambda: [])
+    conclusion: List[ArgdownStatement] = dataclasses.field(
+        default_factory=lambda: [ArgdownStatement()]
+    )
 
     premises_formalized: List[Formalization] = dataclasses.field(
-        default_factory=lambda: []
+        default_factory=lambda: [Formalization()]
     )
     intermediary_conclusions_formalized: List[Formalization] = dataclasses.field(
-        default_factory=lambda: []
+        default_factory=lambda: [Formalization()]
     )
     conclusion_formalized: List[Formalization] = dataclasses.field(
-        default_factory=lambda: []
+        default_factory=lambda: [Formalization()]
     )
     predicate_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
     entity_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
@@ -415,13 +417,13 @@ class Director:
         for split in dataset.keys():
             if dataset[split].column_names != pp_example_fields:
                 logging.error(
-                    "Features of dataset with preprocessed examples"
+                    "Features of dataset with preprocessed examples "
                     "(%s) don't match raw_example_type (%s).",
                     dataset.column_names,
                     pp_example_fields,
                 )
                 raise ValueError(
-                    "Features of dataset with preprocessed examples"
+                    "Features of dataset with preprocessed examples "
                     "don't match preprocessed_example_type."
                 )
         logging.info("Preprocessed dataset: %s", dataset)
@@ -434,6 +436,7 @@ class Director:
             remove_columns=pp_example_fields,
         )
         logging.info("Created new %s deepa2 dataset: %s", name, dataset)
+        logging.debug("Features: %s", dataset["train"].info.features)
 
         # 5. Remove metadata
         if (not debug_size) and all(
