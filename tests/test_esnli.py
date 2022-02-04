@@ -1,5 +1,6 @@
 """tests the ESNLIBuilder"""
 from __future__ import annotations
+import dataclasses
 
 import pytest
 import datasets
@@ -53,15 +54,17 @@ PREPROCESSED_EXAMPLES_1 = [
 def test_esnli_preprocessor():
     """tests esnli preprocessor"""
     raw_data = {}
-    for key in RawESNLIExample.__annotations__.keys():  # pylint: disable=no-member}
-        raw_data[key] = [example[key] for example in RAW_EXAMPLES_1]
+    for field in dataclasses.fields(RawESNLIExample):
+        key = field.name
+        raw_data[key] = [getattr(example, key) for example in RAW_EXAMPLES_1]
     dataset = datasets.Dataset.from_dict(raw_data)
     dataset = ESNLIBuilder.preprocess(dataset)
     preprocessed_data = dataset.to_dict(batch_size=1, batched=True)  # return iterator
     preprocessed_examples = []
-    for preprocessed_example in preprocessed_data:
+    for batch in preprocessed_data:
         # unbatch
-        preprocessed_examples.append({k: v[0] for k, v in preprocessed_example.items()})
+        preprocessed_example = PreprocessedESNLIExample(**{k: v[0] for k, v in batch.items()})
+        preprocessed_examples.append(preprocessed_example)
     assert preprocessed_examples == PREPROCESSED_EXAMPLES_1
 
 
@@ -70,7 +73,11 @@ def fixture_processed_examples():
     """processes examples"""
     da2items = []
     for preprocessed_example in PREPROCESSED_EXAMPLES_1:
-        batched_input = {k: [v] for k, v in preprocessed_example.items()}
+        batched_input = {
+            k: [v]
+            for k, v
+            in dataclasses.asdict(preprocessed_example).items()
+        }
         builder = ESNLIBuilder()
         builder.input = batched_input
         builder.configure_product()
@@ -84,7 +91,7 @@ def fixture_processed_examples():
 def test_esnli_conclusions_1(processed_examples):
     """contrary hypothesis is never conclusion"""
     conclusions = [da2item["conclusion"][0]["text"] for da2item in processed_examples]
-    hyp_c = PREPROCESSED_EXAMPLES_1[0].get("hypothesis_con")
+    hyp_c = PREPROCESSED_EXAMPLES_1[0].hypothesis_con
     print(conclusions)
     print(hyp_c)
     assert hyp_c not in conclusions
@@ -93,7 +100,7 @@ def test_esnli_conclusions_1(processed_examples):
 def test_esnli_conclusions_2(processed_examples):
     """neutral hypothesis is never conclusion"""
     conclusions = [da2item["conclusion"][0]["text"] for da2item in processed_examples]
-    hyp_n = PREPROCESSED_EXAMPLES_1[0].get("hypothesis_neu")
+    hyp_n = PREPROCESSED_EXAMPLES_1[0].hypothesis_neu
     print(conclusions)
     print(hyp_n)
     assert hyp_n not in conclusions
@@ -102,7 +109,7 @@ def test_esnli_conclusions_2(processed_examples):
 def test_esnli_conclusions_3(processed_examples):
     """entailed hypothesis is sometimes conclusion"""
     conclusions = [da2item["conclusion"][0]["text"] for da2item in processed_examples]
-    hyp_e = PREPROCESSED_EXAMPLES_1[0].get("hypothesis_ent")
+    hyp_e = PREPROCESSED_EXAMPLES_1[0].hypothesis_ent
     print(conclusions)
     print(hyp_e)
     assert (hyp_e in conclusions) and (len(set(conclusions)) != 1)

@@ -5,7 +5,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import random
-from typing import Any, List, Dict, Union
+from typing import List, Dict, Union
 import uuid
 
 import datasets
@@ -29,32 +29,34 @@ import deepa2datasets.jinjafilters as jjfilters
 tqdm.pandas()
 
 
+@dataclasses.dataclass
 class RawESNLIExample(RawExample):
     """
     Datatype describing a raw, unprocessed example
-    in a e-snli dataset.
+    in a e-snli dataset, possibly batched.
     """
 
     premise: Union[str, List[str]]
     hypothesis: Union[str, List[str]]
-    label: Union[str, List[str]]
+    label: Union[int, List[int]]
     explanation_1: Union[str, List[str]]
     explanation_2: Union[str, List[str]]
     explanation_3: Union[str, List[str]]
 
 
+@dataclasses.dataclass
 class PreprocessedESNLIExample(PreprocessedExample):
     """
     Datatype describing a preprocessed e-snli example.
     """
 
-    premise: Union[str, List[str]]
-    hypothesis_ent: Union[str, List[str]]
-    hypothesis_neu: Union[str, List[str]]
-    hypothesis_con: Union[str, List[str]]
-    explanation_ent: Union[List[str], List[Any]]
-    explanation_neu: Union[List[str], List[Any]]
-    explanation_con: Union[List[str], List[Any]]
+    premise: str
+    hypothesis_ent: str
+    hypothesis_neu: str
+    hypothesis_con: str
+    explanation_ent: List[str]
+    explanation_neu: List[str]
+    explanation_con: List[str]
 
 
 @dataclasses.dataclass
@@ -196,14 +198,10 @@ class ESNLIBuilder(Builder):
         df_esnli_final: pd.DataFrame = pd.concat(
             [
                 df_esnli_tmp2[
-                    list(
-                        RawESNLIExample.__annotations__.keys()  # pylint: disable=no-member
-                    )
+                    [field.name for field in dataclasses.fields(RawESNLIExample)]
                 ],
                 df_esnli_tmp[
-                    list(
-                        RawESNLIExample.__annotations__.keys()  # pylint: disable=no-member
-                    )
+                    [field.name for field in dataclasses.fields(RawESNLIExample)]
                 ],
             ]
         )
@@ -244,11 +242,16 @@ class ESNLIBuilder(Builder):
             # fill in explanations in case they are missing
             # we assume that "explanation_1" is given
             for key in ["explanation_ent", "explanation_neu", "explanation_con"]:
+                explanations = getattr(preprocessed_example, key)
+                has_been_changed = False
                 for i in [1, 2]:
-                    if preprocessed_example[key][i] == "":  # type: ignore
-                        preprocessed_example[key][i] = preprocessed_example[key][0]  # type: ignore
+                    if explanations[i] == "":
+                        explanations[i] = explanations[0]
+                        has_been_changed = True
+                if has_been_changed:
+                    setattr(preprocessed_example, key, explanations)
 
-            return pd.Series(preprocessed_example)
+            return pd.Series(dataclasses.asdict(preprocessed_example))
 
         df_esnli_final["triple_id"] = np.repeat(
             np.arange(int(len(df_esnli_final) / 3)), 3
@@ -325,21 +328,17 @@ class ESNLIBuilder(Builder):
         self._env.filters["negation"] = jjfilters.negation
         self._env.filters["conditional"] = jjfilters.conditional
 
+        self._input: PreprocessedESNLIExample
+
         super().__init__()
 
     @property
     def input(self) -> PreprocessedESNLIExample:
-        """
-        The input of any builder is a preprocessed example
-        """
-        return self._input  # type: ignore
+        return self._input
 
     @input.setter
-    def input(self, preprocessed_example: PreprocessedESNLIExample) -> None:
-        """
-        Sets input for building next product.
-        """
-        self._input = {k: v[0] for k, v in preprocessed_example.items()}  # type: ignore
+    def input(self, batched_input: Dict[str, List]) -> None:
+        self._input = PreprocessedESNLIExample.from_batch(batched_input)
 
     def configure_product(self) -> None:
         # populate product with configs
@@ -372,26 +371,26 @@ class ESNLIBuilder(Builder):
         data = {}
         if record.metadata["label"] == "entailment":
             data = {
-                "premise": self.input["premise"],
-                "hypothesis": self.input["hypothesis_ent"],
-                "premise_cond": self.input["explanation_ent"][
+                "premise": self.input.premise,
+                "hypothesis": self.input.hypothesis_ent,
+                "premise_cond": self.input.explanation_ent[
                     idx % 3
                 ],  # used in source text
                 "distractors": [
-                    self.input["hypothesis_neu"],
-                    self.input["explanation_con"][idx % 3],
+                    self.input.hypothesis_neu,
+                    self.input.explanation_con[idx % 3],
                 ],  # used in source text
             }
         else:  # label == contradiction
             data = {
-                "premise": self.input["premise"],
-                "hypothesis": self.input["hypothesis_con"],
-                "premise_cond": self.input["explanation_con"][
+                "premise": self.input.premise,
+                "hypothesis": self.input.hypothesis_con,
+                "premise_cond": self.input.explanation_con[
                     idx % 3
                 ],  # used in source text
                 "distractors": [
-                    self.input["hypothesis_neu"],
-                    self.input["explanation_ent"][idx % 3],
+                    self.input.hypothesis_neu,
+                    self.input.explanation_ent[idx % 3],
                 ],  # used in source text
             }
 

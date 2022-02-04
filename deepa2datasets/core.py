@@ -18,17 +18,25 @@ from abc import ABC, abstractmethod
 import dataclasses
 import logging
 from pathlib import Path
-from typing import Optional, Any, List, Dict, TypedDict, Type
+from typing import Optional, Any, List, Dict, Type
 
 import datasets
 
 
-class RawExample(TypedDict):
-    """Raw Example Empty TypedDict"""
+@dataclasses.dataclass
+class RawExample(ABC):
+    """Abstract Raw Example dataclass"""
 
 
-class PreprocessedExample(TypedDict):
-    """Preprocessed Example Empty TypedDict"""
+@dataclasses.dataclass
+class PreprocessedExample(ABC):
+    """Abstract Preprocessed Example dataclass"""
+
+    @classmethod
+    def from_batch(cls, batched_data: Dict[str, List]):
+        """Unbatches data and returns a PreprocessedExample"""
+        unbatched_data = {k: v[0] for k, v in batched_data.items()}
+        return cls(**unbatched_data)
 
 
 @dataclasses.dataclass
@@ -184,20 +192,22 @@ class Builder(ABC):
     def _reset(self) -> None:
         self._product = []
 
-    @property  # type: ignore
-    @abstractmethod
+    @property
     def input(self) -> PreprocessedExample:
         """
         The input of any builder is a preprocessed example.
         """
+        return self._input
 
-    @input.setter  # type: ignore
-    @abstractmethod
-    def input(self, preprocessed_example: PreprocessedExample) -> None:
+    @input.setter
+    def input(self, batched_input: Dict[str, List]) -> None:
+        """Sets input for building next product.
+
+        As we're processing one pre-processed item per build-step,
+        we internally represent the batched input as a single, unbatched
+        `PreprocessedExample`
         """
-        Sets input for building next product.
-        """
-        self._input = preprocessed_example
+        self._input = PreprocessedExample.from_batch(batched_input)
 
     @abstractmethod
     def configure_product(self) -> None:
@@ -302,7 +312,7 @@ class Director:
 
     def process(self, batched_input: Dict[str, List]) -> Dict[str, List]:
         """
-        The Director provides a function that can me mapped over a dataset
+        The Director provides a function that can be mapped over a dataset
         (requiring batches of size 1).
         """
         if any(len(v) != 1 for v in batched_input.values()):
@@ -317,6 +327,7 @@ class Director:
         self.builder.postprocess_da2item()
         self.builder.add_metadata_da2item()
         da2items = self.builder.product  # product is a list of dicts
+
         # sanity checks
         for da2item in da2items:
             if list(da2item.keys()) != [
@@ -329,6 +340,15 @@ class Director:
                 raise ValueError(
                     "Builder product contains item that is not a DeepA2 item."
                 )
+            try:
+                isinstance(DeepA2Item(**da2item), DeepA2Item)
+            except Exception:
+                logging.error(
+                    "Builder product contains item that cannot be cast as DeepA2 item: %s",
+                    da2item,
+                )
+                raise
+
         # transpose to dict of lists
         batched_result = {}
         for k in da2items[0].keys():
@@ -359,19 +379,15 @@ class Director:
                 list(dataset.keys()),
             )
         # check features
+        raw_example_fields = [
+            field.name for field in dataclasses.fields(self.raw_example_type)
+        ]
         for split in dataset.keys():
-            if not (
-                dataset[split].column_names
-                == list(
-                    self.raw_example_type.__annotations__.keys()
-                )  # pylint: disable=no-member
-            ):
+            if dataset[split].column_names != raw_example_fields:
                 logging.error(
                     "Features of dataset with raw examples (%s) don't match raw_example_type (%s).",
                     dataset.column_names,
-                    list(
-                        self.raw_example_type.__annotations__.keys()
-                    ),  # pylint: disable=no-member
+                    raw_example_fields,
                 )
                 raise ValueError(
                     "Features of dataset with raw examples don't match raw_example_type."
@@ -391,20 +407,16 @@ class Director:
             logging.info("Preprocessing split %s ...", split)
             dataset[split] = self.builder.preprocess(dataset[split])
         # check features
+        pp_example_fields = [
+            field.name for field in dataclasses.fields(self.preprocessed_example_type)
+        ]
         for split in dataset.keys():
-            if not (
-                dataset[split].column_names
-                == list(
-                    self.preprocessed_example_type.__annotations__.keys()  # pylint: disable=no-member
-                )
-            ):
+            if dataset[split].column_names != pp_example_fields:
                 logging.error(
                     "Features of dataset with preprocessed examples"
                     "(%s) don't match raw_example_type (%s).",
                     dataset.column_names,
-                    list(
-                        self.preprocessed_example_type.__annotations__.keys()  # pylint: disable=no-member
-                    ),
+                    pp_example_fields,
                 )
                 raise ValueError(
                     "Features of dataset with preprocessed examples"
@@ -417,9 +429,7 @@ class Director:
             self.process,
             batched=True,
             batch_size=1,
-            remove_columns=list(
-                self.preprocessed_example_type.__annotations__.keys()  # pylint: disable=no-member
-            ),
+            remove_columns=pp_example_fields,
         )
         logging.info("Created new %s deepa2 dataset: %s", name, dataset)
 

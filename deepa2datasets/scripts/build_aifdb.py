@@ -54,7 +54,6 @@ def moral_maze(export_path: Optional[str] = None, debug_size: Optional[int] = No
             "http://corpora.aifdb.org/zip/britishempire",
             "http://corpora.aifdb.org/zip/Money",
             "http://corpora.aifdb.org/zip/welfare",
-            "http://corpora.aifdb.org/zip/schemes",
             "http://corpora.aifdb.org/zip/problem",
             "http://corpora.aifdb.org/zip/mm2012",
             "http://corpora.aifdb.org/zip/mm2012a",

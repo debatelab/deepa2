@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 import random
 import re
-from typing import Any, List, Dict, Union
+from typing import List, Dict, Union
 import zipfile
 
 import jinja2
@@ -28,6 +28,7 @@ from deepa2datasets.core import (
 from deepa2datasets.config import template_dir, package_dir
 
 
+@dataclasses.dataclass
 class RawAIFDBExample(RawExample):
     """dataclass of raw aifdb example"""
 
@@ -36,16 +37,17 @@ class RawAIFDBExample(RawExample):
     corpus: Union[str, List[str]]
 
 
+@dataclasses.dataclass
 class PreprocessedAIFDBExample(PreprocessedExample):
     """dataclass of preprocessed aifdb example"""
 
-    text: Union[str, List[str]]
-    corpus: Union[str, List[str]]
-    type: Union[str, List[str]]
-    reasons: Union[List[str], List[Any]]
-    conjectures: Union[List[str], List[Any]]
-    premises: Union[List[str], List[Any]]
-    conclusions: Union[List[str], List[Any]]
+    text: str
+    corpus: str
+    type: str
+    reasons: List[str]
+    conjectures: List[str]
+    premises: List[str]
+    conclusions: List[str]
 
 
 @dataclasses.dataclass
@@ -116,10 +118,11 @@ class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
 
         # create train-validation-test splits
         dataset_split1 = dataset.train_test_split(
-            test_size=(1 - splits["train"])
+            test_size=(1 - splits["train"]), seed=42
         )  # split once
         dataset_split2 = dataset_split1["test"].train_test_split(
-            test_size=(splits["test"] / (splits["test"] + splits["validation"]))
+            test_size=(splits["test"] / (splits["test"] + splits["validation"])),
+            seed=42,
         )  # split test-split again
         dataset_dict = datasets.DatasetDict(
             train=dataset_split1["train"],
@@ -130,7 +133,7 @@ class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
         return dataset_dict
 
 
-class Utils:
+class _Utils:
     """utilities for preprocessing AIFdb"""
 
     cleanr = re.compile("<.*?>")
@@ -138,11 +141,11 @@ class Utils:
     @staticmethod
     def cleanhtml(example):
         """cleans html in source texts"""
-        example["text"] = re.sub(Utils.cleanr, "", example["text"])
+        example["text"] = re.sub(_Utils.cleanr, "", example["text"])
         return example
 
     @staticmethod
-    def split_nodeset_per_inference(  # pylint: disable=too-many-locals
+    def split_nodeset_per_inference(  # pylint: disable=too-many-locals, too-many-statements
         examples: Dict[str, List]
     ) -> Dict[str, List]:
         """extracts individual inferences from nodesets, and splits nodesets accordingly"""
@@ -153,9 +156,10 @@ class Utils:
         }
         node_type: Dict = {}
         node_text: Dict = {}
-        graph = None
+        graph: nx.Graph
         # for each example
         for i, nodeset in enumerate(examples["nodeset"]):
+            corpus = examples["corpus"][i]
             # initialize graph representing the argumentative analysis
             nodeset["directed"] = True
             attrs = {
@@ -207,35 +211,44 @@ class Utils:
                 ]
 
                 # get conjectures and reasons (ids)
-                def get_l_grandparent(node):
+                def get_l_grandparent(node, corpus) -> List:
                     if node_type[node] != "I":
-                        return None
+                        logging.warning(
+                            "`get_l_grandparent` called with node of type != `I`"
+                        )
+                        return []
                     ya_predecessors = [
                         n for n in graph.predecessors(node) if node_type[n] == "YA"
                     ]
                     if not ya_predecessors:
-                        return None
+                        logging.warning(
+                            "node %s in corpus %s has no grandparents", node, corpus
+                        )
+                        return []
                     l_grandparents = [
                         n
                         for m in ya_predecessors
                         for n in graph.predecessors(m)
                         if node_type[n] == "L" and node_text[n] != "analyses"
                     ]
+                    if not l_grandparents:
+                        logging.warning(
+                            "node %s in corpus %s has no L-grandparents", node, corpus
+                        )
                     return l_grandparents
 
-                conjectures = [get_l_grandparent(n) for n in conclusions]
+                conjectures = [get_l_grandparent(n, corpus) for n in conclusions]
                 if conjectures:
                     # flatten
-                    conjectures = [x for l in conjectures if l for x in l]  # noqa: E741
+                    conjectures = [x for sublist in conjectures for x in sublist]
                     # sort, ids correspond to location in text
                     conjectures = sorted(conjectures)
-                reasons = [get_l_grandparent(n) for n in premises]
+                reasons = [get_l_grandparent(n, corpus) for n in premises]
                 if reasons:
                     # flatten
-                    reasons = [x for l in reasons if l for x in l]  # noqa: E741
-                    reasons = sorted(
-                        reasons
-                    )  # sort, ids correspond to location in text
+                    reasons = [x for sublist in reasons for x in sublist]
+                    # sort, ids correspond to location in text
+                    reasons = sorted(reasons)
                 # subst text for ids
                 conjectures = [node_text[n] for n in conjectures]
                 reasons = [node_text[n] for n in reasons]
@@ -243,7 +256,7 @@ class Utils:
                 premises = [node_text[n] for n in premises]
                 # create new record
                 inference_chunks["text"].append(text)
-                inference_chunks["corpus"].append(examples["corpus"][i])
+                inference_chunks["corpus"].append(corpus)
                 inference_chunks["premises"].append(premises)
                 inference_chunks["conclusions"].append(conclusions)
                 inference_chunks["reasons"].append(reasons)
@@ -264,10 +277,10 @@ class AIFDBBuilder(Builder):
     def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
         """preprocessed AIFdb dataset"""
 
-        dataset = dataset.map(Utils.cleanhtml)
+        dataset = dataset.map(_Utils.cleanhtml)
 
         dataset = dataset.map(
-            Utils.split_nodeset_per_inference,
+            _Utils.split_nodeset_per_inference,
             batched=True,
             remove_columns=dataset.column_names,
         )
@@ -291,35 +304,29 @@ class AIFDBBuilder(Builder):
             autoescape=jinja2.select_autoescape(),
         )
         self._aifdb_config: AIFDBConfig = aifdb_config
+
         self._input: PreprocessedAIFDBExample
 
         super().__init__()
 
     @property
     def input(self) -> PreprocessedAIFDBExample:
-        """
-        The input of any builder is a proprocessed example
-        """
         return self._input
 
     @input.setter
-    def input(self, preprocessed_example: PreprocessedAIFDBExample) -> None:
-        """
-        Sets input for building next product.
-        """
-        # unbatch:
-        self._input = {k: v[0] for k, v in preprocessed_example.items()}  # type: ignore
+    def input(self, batched_input: Dict[str, List]) -> None:
+        self._input = PreprocessedAIFDBExample.from_batch(batched_input)
 
     def configure_product(self) -> None:
         # create configuration and add empty da2 item to product
-        itype = self._input["type"]
+        itype = self.input.type
         sp_template = random.choice(
             self._aifdb_config.templates_sp_ra
             if itype == "RA"
             else self._aifdb_config.templates_sp_ca
         )
         metadata = {
-            "corpus": self._input["corpus"],
+            "corpus": self.input.corpus,
             "type": itype,
             "config": {"sp_template": sp_template},
         }
@@ -328,20 +335,20 @@ class AIFDBBuilder(Builder):
     def produce_da2item(self) -> None:
         # we produce a single da2item per input only
         record = self._product[0]
-        record.argument_source = str(self.input["text"])
+        record.argument_source = str(self.input.text)
         record.reason_statements = [
             QuotedStatement(text=r, starts_at=-1, ref_reco=e + 1)
-            for e, r in enumerate(self.input["reasons"])
+            for e, r in enumerate(self.input.reasons)
         ]
         n_reas = len(record.reason_statements)
         record.conclusion_statements = [
             QuotedStatement(text=j, starts_at=-1, ref_reco=n_reas + 1)
-            for j in self.input["conjectures"]
+            for j in self.input.conjectures
         ]
         # source paraphrase
         sp_template = self._env.get_template(record.metadata["config"]["sp_template"])
         record.source_paraphrase = sp_template.render(
-            premises=self.input["premises"], conclusion=self.input["conclusions"]
+            premises=self.input.premises, conclusion=self.input.conclusions
         )
 
     def postprocess_da2item(self) -> None:

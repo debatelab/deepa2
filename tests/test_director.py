@@ -1,7 +1,8 @@
 """tests the core.Director pipeline by means of a dummy builder"""
 
+import dataclasses
 import pathlib
-from typing import List, Union
+from typing import List, Union, Dict
 
 import datasets
 
@@ -18,18 +19,20 @@ from deepa2datasets.core import (
 RAW_EXAMPLES = {"text": ["premise conclusion", "another_premise another_conclusion"]}
 
 
+@dataclasses.dataclass
 class DummyRawExample(RawExample):
     """Dummy raw example structure"""
 
     text: Union[str, List[str]]
 
 
+@dataclasses.dataclass
 class DummyPreprocessedExample(PreprocessedExample):
     """Dummy preprocessed example structure"""
 
-    text: Union[str, List[str]]
-    premise: Union[str, List[str]]
-    conclusion: Union[str, List[str]]
+    text: str
+    premise: str
+    conclusion: str
 
 
 class DummyDatasetLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
@@ -52,18 +55,23 @@ class DummyBuilder(Builder):
                 premise=example["text"].split()[0],
                 conclusion=example["text"].split()[-1],
             )
-            return preprocessed_example
+            preprocessed_record = dataclasses.asdict(preprocessed_example)
+            return preprocessed_record
 
         dataset = dataset.map(function)
         return dataset
 
+    def __init__(self) -> None:
+        self._input: DummyPreprocessedExample
+        super().__init__()
+
     @property
     def input(self) -> DummyPreprocessedExample:
-        return self._input  # type: ignore
+        return self._input
 
     @input.setter
-    def input(self, preprocessed_example: DummyPreprocessedExample) -> None:
-        self._input = {k: v[0] for k, v in preprocessed_example.items()}  # type: ignore
+    def input(self, batched_input: Dict[str, List]) -> None:
+        self._input = DummyPreprocessedExample.from_batch(batched_input)
 
     def configure_product(self) -> None:
         metadata = {
@@ -73,9 +81,9 @@ class DummyBuilder(Builder):
 
     def produce_da2item(self) -> None:
         record = self._product[0]  # we produce a single da2item per input only
-        record.argument_source = str(self.input["text"])
+        record.argument_source = str(self.input.text)
         record.argdown_reconstruction = (
-            f"{self.input['premise']}\n----\n{self.input['conclusion']}"
+            f"{self.input.premise}\n----\n{self.input.conclusion}"
         )
 
     def postprocess_da2item(self) -> None:
