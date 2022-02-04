@@ -63,7 +63,9 @@ def test_esnli_preprocessor():
     preprocessed_examples = []
     for batch in preprocessed_data:
         # unbatch
-        preprocessed_example = PreprocessedESNLIExample(**{k: v[0] for k, v in batch.items()})
+        preprocessed_example = PreprocessedESNLIExample(
+            **{k: v[0] for k, v in batch.items()}
+        )
         preprocessed_examples.append(preprocessed_example)
     assert preprocessed_examples == PREPROCESSED_EXAMPLES_1
 
@@ -74,9 +76,7 @@ def fixture_processed_examples():
     da2items = []
     for preprocessed_example in PREPROCESSED_EXAMPLES_1:
         batched_input = {
-            k: [v]
-            for k, v
-            in dataclasses.asdict(preprocessed_example).items()
+            k: [v] for k, v in dataclasses.asdict(preprocessed_example).items()
         }
         builder = ESNLIBuilder()
         builder.input = batched_input
