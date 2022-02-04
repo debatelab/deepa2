@@ -62,15 +62,14 @@ class DummyBuilder(Builder):
         return dataset
 
     def __init__(self) -> None:
-        self._input: DummyPreprocessedExample
         super().__init__()
+        self._input: DummyPreprocessedExample
 
     @property
     def input(self) -> DummyPreprocessedExample:
         return self._input
 
-    @input.setter
-    def input(self, batched_input: Dict[str, List]) -> None:
+    def set_input(self, batched_input: Dict[str, List]) -> None:
         self._input = DummyPreprocessedExample.from_batch(batched_input)
 
     def configure_product(self) -> None:

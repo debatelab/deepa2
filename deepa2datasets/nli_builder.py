@@ -11,7 +11,7 @@ import uuid
 import datasets
 import jinja2
 import numpy as np
-import pandas as pd  # type: ignore
+import pandas as pd
 from tqdm import tqdm  # type: ignore
 
 from deepa2datasets.core import (
@@ -127,14 +127,14 @@ class ESNLIBuilder(Builder):
 
     @staticmethod
     def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
-        df_esnli = dataset.to_pandas()
-        df_esnli = df_esnli.drop_duplicates()  # type: ignore
+        df_esnli = pd.DataFrame(dataset.to_pandas())
+        df_esnli = df_esnli.drop_duplicates()
         # count explanations per row
         df_esnli["n_explanations"] = 3 - df_esnli[
             ["explanation_1", "explanation_2", "explanation_3"]
         ].eq("").sum(axis=1)
         # keep records with at least one explanation
-        df_esnli = df_esnli[df_esnli.n_explanations.ge(1)]
+        df_esnli = pd.DataFrame(df_esnli[df_esnli.n_explanations.ge(1)])
         # count how frequently premise occurs in the dataset (default = three times)
         counts = df_esnli.groupby(["premise"]).size()
         tqdm.write("Preprocessing 1/8")
@@ -142,7 +142,7 @@ class ESNLIBuilder(Builder):
             lambda x: counts[x]
         )
         # drop records whose premise occurs less than 3 times
-        df_esnli = df_esnli[df_esnli.premise_counts.ge(3)]
+        df_esnli = pd.DataFrame(df_esnli[df_esnli.premise_counts.ge(3)])
 
         # we split df in two parts which will be processed separately and are finally merged
 
@@ -311,6 +311,9 @@ class ESNLIBuilder(Builder):
         """
         Initialize eSNLI Builder.
         """
+        super().__init__()
+        self._input: PreprocessedESNLIExample
+
         # check whether template files are accessible
         if not (template_dir / "esnli").exists():
             logging.debug("Package dir: %s", package_dir)
@@ -328,16 +331,11 @@ class ESNLIBuilder(Builder):
         self._env.filters["negation"] = jjfilters.negation
         self._env.filters["conditional"] = jjfilters.conditional
 
-        self._input: PreprocessedESNLIExample
-
-        super().__init__()
-
     @property
     def input(self) -> PreprocessedESNLIExample:
         return self._input
 
-    @input.setter
-    def input(self, batched_input: Dict[str, List]) -> None:
+    def set_input(self, batched_input: Dict[str, List]) -> None:
         self._input = PreprocessedESNLIExample.from_batch(batched_input)
 
     def configure_product(self) -> None:

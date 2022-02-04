@@ -36,8 +36,8 @@ def build_from_aifdb(
     dataset_loader = AIFDBLoader(aifdb_config)
     director.builder = builder
     director.dataset_loader = dataset_loader
-    director.raw_example_type = RawAIFDBExample  # type: ignore
-    director.preprocessed_example_type = PreprocessedAIFDBExample  # type: ignore
+    director.raw_example_type = RawAIFDBExample
+    director.preprocessed_example_type = PreprocessedAIFDBExample
 
     director.transform(export_path=export_path, debug_size=debug_size, name=name)
 

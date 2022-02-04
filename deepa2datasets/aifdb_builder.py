@@ -292,6 +292,9 @@ class AIFDBBuilder(Builder):
         A fresh builder instance should contain a blank product object, which is
         used in further assembly.
         """
+        super().__init__()
+        self._input: PreprocessedAIFDBExample
+
         # check whether template files are accessible
         if not (template_dir / "aifdb").exists():
             logging.debug("Package dir: %s", package_dir)
@@ -305,16 +308,11 @@ class AIFDBBuilder(Builder):
         )
         self._aifdb_config: AIFDBConfig = aifdb_config
 
-        self._input: PreprocessedAIFDBExample
-
-        super().__init__()
-
     @property
     def input(self) -> PreprocessedAIFDBExample:
         return self._input
 
-    @input.setter
-    def input(self, batched_input: Dict[str, List]) -> None:
+    def set_input(self, batched_input: Dict[str, List]) -> None:
         self._input = PreprocessedAIFDBExample.from_batch(batched_input)
 
     def configure_product(self) -> None:

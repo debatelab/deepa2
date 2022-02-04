@@ -94,6 +94,7 @@ class DeepA2Item:  # pylint: disable=too-many-instance-attributes
         predicate_placeholders: placeholders in formalizations
         entity_placeholders: placeholders in formalizations
         misc_placeholders: placeholders in formalizations
+        plchd_substitutions: substitutions for placeholders
         distractors: list of disctractors in àrgument_source`
         metadata: metadata
 
@@ -178,6 +179,7 @@ class Builder(ABC):
 
     def __init__(self):
         self._product: List[DeepA2Item] = []
+        self._input: PreprocessedExample
 
     @property
     def product(self) -> List[Dict]:
@@ -199,8 +201,8 @@ class Builder(ABC):
         """
         return self._input
 
-    @input.setter
-    def input(self, batched_input: Dict[str, List]) -> None:
+    @abstractmethod
+    def set_input(self, batched_input: Dict[str, List]) -> None:
         """Sets input for building next product.
 
         As we're processing one pre-processed item per build-step,
@@ -321,7 +323,7 @@ class Director:
             raise ValueError(
                 "Director.transform(): batched_input is not of uniform length."
             )
-        self.builder.input = batched_input  # type: ignore
+        self.builder.set_input(batched_input)
         self.builder.configure_product()
         self.builder.produce_da2item()
         self.builder.postprocess_da2item()

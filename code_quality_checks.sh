@@ -1,5 +1,5 @@
 #!/bin/bash
-
+echo "===================================================================="
 echo "Running pylint..."
 poetry run pylint deepa2datasets tests
 
