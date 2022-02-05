@@ -5,7 +5,7 @@ import dataclasses
 import pytest
 import datasets
 
-from deepa2datasets.nli_builder import (
+from deepa2.nli_builder import (
     ESNLIBuilder,
     RawESNLIExample,
     PreprocessedESNLIExample,

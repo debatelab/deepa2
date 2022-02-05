@@ -6,8 +6,8 @@ import logging
 from typing import Optional
 import typer
 
-from deepa2datasets.core import Director, DatasetLoader
-from deepa2datasets.nli_builder import (
+from deepa2.core import Director, DatasetLoader
+from deepa2.nli_builder import (
     ESNLIBuilder,
     RawESNLIExample,
     PreprocessedESNLIExample,

@@ -22,9 +22,9 @@ jobs:
         run: poetry update
       - name: Check style with flake8 & pylint
         run: |
-          poetry run flake8 deepa2datasets/ tests/
-          poetry run pylint deepa2datasets/
+          poetry run flake8 deepa2/ tests/
+          poetry run pylint deepa2/
       - name: Check format with black
-        run: poetry run black --check deepa2datasets/ tests/
+        run: poetry run black --check deepa2/ tests/
       - name: Check type hinting with mypy
-        run: poetry run mypy deepa2datasets/
+        run: poetry run mypy deepa2/

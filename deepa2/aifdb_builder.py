@@ -17,7 +17,7 @@ import datasets
 import networkx as nx  # type: ignore
 import requests
 
-from deepa2datasets.core import (
+from deepa2.core import (
     Builder,
     DatasetLoader,
     DeepA2Item,
@@ -25,7 +25,7 @@ from deepa2datasets.core import (
     PreprocessedExample,
     RawExample,
 )
-from deepa2datasets.config import template_dir, package_dir
+from deepa2.config import template_dir, package_dir
 
 
 @dataclasses.dataclass

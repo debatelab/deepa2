@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm  # type: ignore
 
-from deepa2datasets.core import (
+from deepa2.core import (
     ArgdownStatement,
     Builder,
     Formalization,
@@ -23,8 +23,8 @@ from deepa2datasets.core import (
     RawExample,
     DeepA2Item,
 )
-from deepa2datasets.config import template_dir, package_dir
-import deepa2datasets.jinjafilters as jjfilters
+from deepa2.config import template_dir, package_dir
+import deepa2.jinjafilters as jjfilters
 
 tqdm.pandas()
 

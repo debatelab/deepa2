@@ -236,7 +236,7 @@ class Director:
     Typical usage example:
         .. code-block:: python
 
-            from deepa2datasets import core
+            from deepa2 import core
 
             class MyBuilder(core.Builder):
                 ...
@@ -444,6 +444,9 @@ class Director:
         ):
             dataset = dataset.remove_columns("metadata")
             logging.info("Removed metadata from deepa2 dataset")
+
+        # TODO: Remove dummy sub-items (QutedStatements etc. that are not used) # pylint: disable=fixme
+        # best write another cleaner/postprocessor function that will be mapped over data
 
         # 6. Save to disk
         if export_path:

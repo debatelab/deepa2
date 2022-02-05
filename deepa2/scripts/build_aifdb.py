@@ -5,15 +5,15 @@ import logging
 from typing import Optional
 import typer
 
-from deepa2datasets.core import Director
-from deepa2datasets.aifdb_builder import (
+from deepa2.core import Director
+from deepa2.aifdb_builder import (
     AIFDBBuilder,
     AIFDBLoader,
     AIFDBConfig,
     RawAIFDBExample,
     PreprocessedAIFDBExample,
 )
-from deepa2datasets.config import data_dir
+from deepa2.config import data_dir
 
 logging.basicConfig(filename="aifdb_builder.log", level=logging.DEBUG)
 

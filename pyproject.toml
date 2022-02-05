@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "deepa2datasets"
+name = "deepa2"
 version = "0.1.0"
 description = "Apps for casting NLP data as multiangular datasets compatible with the DeepA2 framework"
 authors = ["Gregor Betz <gregor.betz@kit.edu>"]
@@ -7,8 +7,8 @@ license = "CC BY 4.0"
 readme = "README.md"
 
 [tool.poetry.scripts]
-build-nli = "deepa2datasets.scripts.build_nli:app"
-build-aifdb = "deepa2datasets.scripts.build_aifdb:app"
+build-nli = "deepa2.scripts.build_nli:app"
+build-aifdb = "deepa2.scripts.build_aifdb:app"
 
 [tool.poetry.dependencies]
 python = "^3.8"
