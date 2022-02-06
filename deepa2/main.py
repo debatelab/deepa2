@@ -65,13 +65,13 @@ def build(  # pylint: disable=too-many-arguments
     if config["source_type"] == "esnli":
         builder = ESNLIBuilder(**config)
         dataset_loader = DatasetLoader(config["path"])
-        director.raw_example_type = RawESNLIExample
-        director.preprocessed_example_type = PreprocessedESNLIExample
+        director.raw_example_class = RawESNLIExample
+        director.preprocessed_example_class = PreprocessedESNLIExample
     elif config["source_type"] == "aifdb":
         builder = AIFDBBuilder(**config)
         dataset_loader = AIFDBLoader(**config)
-        director.raw_example_type = RawAIFDBExample
-        director.preprocessed_example_type = PreprocessedAIFDBExample
+        director.raw_example_class = RawAIFDBExample
+        director.preprocessed_example_class = PreprocessedAIFDBExample
     else:
         typer.echo(f"Unknown source_type: {config['source_type']}")
 

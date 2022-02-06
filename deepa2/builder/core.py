@@ -35,12 +35,12 @@ class BaseExample(ABC):
             if split.column_names != raw_example_fields:
                 logging.error(
                     "Features of dataset with raw examples (%s) "
-                    "don't match raw_example_type (%s).",
+                    "don't match raw_example_class (%s).",
                     dataset.column_names,
                     raw_example_fields,
                 )
                 raise ValueError(
-                    "Features of dataset with raw examples don't match raw_example_type."
+                    "Features of dataset with raw examples don't match raw_example_class."
                 )
 
 
@@ -274,8 +274,8 @@ class Director:  # pylint: disable=too-many-instance-attributes
             dataset_loader = core.DatasetLoader("some-dataset-at-hf-hub")
             director.builder = builder
             director.dataset_loader = dataset_loader
-            director.raw_example_type = MyRawExample
-            director.preprocessed_example_type = MyPreprocessedExample
+            director.raw_example_class = MyRawExample
+            director.preprocessed_example_class = MyPreprocessedExample
 
             director.transform(export_path="some-path")
     """
@@ -283,8 +283,8 @@ class Director:  # pylint: disable=too-many-instance-attributes
     def __init__(self) -> None:
         self._builder: Builder
         self._dataset_loader: DatasetLoader
-        self._raw_example_type: Type[RawExample]
-        self._preprocessed_example_type: Type[PreprocessedExample]
+        self._raw_example_class: Type[RawExample]
+        self._preprocessed_example_class: Type[PreprocessedExample]
 
     @property
     def builder(self) -> Builder:
@@ -311,30 +311,30 @@ class Director:  # pylint: disable=too-many-instance-attributes
         self._dataset_loader = dataset_loader
 
     @property
-    def raw_example_type(self) -> Type[RawExample]:
-        """raw_example_type property"""
-        return self._raw_example_type
+    def raw_example_class(self) -> Type[RawExample]:
+        """raw_example_class property"""
+        return self._raw_example_class
 
-    @raw_example_type.setter
-    def raw_example_type(self, raw_example_type: Type[RawExample]) -> None:
+    @raw_example_class.setter
+    def raw_example_class(self, raw_example_class: Type[RawExample]) -> None:
         """
         Class of raw examples, used for sanity checks during execution of pipeline.
         """
-        self._raw_example_type = raw_example_type
+        self._raw_example_class = raw_example_class
 
     @property
-    def preprocessed_example_type(self) -> Type[PreprocessedExample]:
-        """preprocessed_example_type"""
-        return self._preprocessed_example_type
+    def preprocessed_example_class(self) -> Type[PreprocessedExample]:
+        """preprocessed_example_class"""
+        return self._preprocessed_example_class
 
-    @preprocessed_example_type.setter
-    def preprocessed_example_type(
-        self, preprocessed_example_type: Type[PreprocessedExample]
+    @preprocessed_example_class.setter
+    def preprocessed_example_class(
+        self, preprocessed_example_class: Type[PreprocessedExample]
     ) -> None:
         """
         Class of preprocessed examples, used for sanity checks during execution of pipeline.
         """
-        self._preprocessed_example_type = preprocessed_example_type
+        self._preprocessed_example_class = preprocessed_example_class
 
     def process(self, batched_input: Dict[str, List]) -> Dict[str, List]:
         """
@@ -426,7 +426,7 @@ class Director:  # pylint: disable=too-many-instance-attributes
                 list(dataset.keys()),
             )
         # check features
-        self.raw_example_type.check_features(dataset)
+        self.raw_example_class.check_features(dataset)
         logging.info("Loaded dataset: %s", dataset)
 
         # 2. Work on small subset for debugging
@@ -442,12 +442,12 @@ class Director:  # pylint: disable=too-many-instance-attributes
             logging.info("Preprocessing split %s ...", split)
             dataset[key] = self.builder.preprocess(split)
         # check features
-        self.preprocessed_example_type.check_features(dataset)
+        self.preprocessed_example_class.check_features(dataset)
         logging.info("Preprocessed dataset: %s", dataset)
 
         # 4. Transform
         pp_example_fields = [
-            field.name for field in dataclasses.fields(self.preprocessed_example_type)
+            field.name for field in dataclasses.fields(self.preprocessed_example_class)
         ]
         dataset = dataset.map(
             self.process,

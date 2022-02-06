@@ -101,8 +101,8 @@ def test_pipeline(tmp_path):
     dataset_loader = DummyDatasetLoader()
     director.builder = builder
     director.dataset_loader = dataset_loader
-    director.raw_example_type = DummyRawExample
-    director.preprocessed_example_type = DummyPreprocessedExample
+    director.raw_example_class = DummyRawExample
+    director.preprocessed_example_class = DummyPreprocessedExample
 
     director.transform(export_path=tmp_path, debug_size=10, name="dummy")
 
