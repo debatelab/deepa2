@@ -1,14 +1,13 @@
 [tool.poetry]
 name = "deepa2"
 version = "0.1.0"
-description = "Apps for casting NLP data as multiangular datasets compatible with the DeepA2 framework"
+description = "App for casting NLP data as multiangular datasets compatible with the DeepA2 framework"
 authors = ["Gregor Betz <gregor.betz@kit.edu>"]
 license = "CC BY 4.0"
 readme = "README.md"
 
 [tool.poetry.scripts]
-build-nli = "deepa2.scripts.build_nli:app"
-build-aifdb = "deepa2.scripts.build_aifdb:app"
+deepa2 = "deepa2.main:app"
 
 [tool.poetry.dependencies]
 python = "^3.8"
@@ -31,6 +30,7 @@ flake8 = "^4.0.1"
 mypy = "^0.931"
 types-requests = "^2.27.8"
 pandas-stubs = "^1.2.0"
+types-PyYAML = "^6.0.4"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

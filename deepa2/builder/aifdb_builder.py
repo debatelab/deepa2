@@ -17,7 +17,7 @@ import datasets
 import networkx as nx  # type: ignore
 import requests
 
-from deepa2.core import (
+from deepa2.builder.core import (
     Builder,
     DatasetLoader,
     DeepA2Item,
@@ -25,7 +25,7 @@ from deepa2.core import (
     PreprocessedExample,
     RawExample,
 )
-from deepa2.config import template_dir, package_dir
+from deepa2.config import template_dir, package_dir, data_dir
 
 
 @dataclasses.dataclass
@@ -55,8 +55,8 @@ class AIFDBConfig:
     """configuration class for AIFdb import"""
 
     name: str
-    cache_dir: Path
-    corpora: List[str]
+    cache_dir: Path = dataclasses.field(default_factory=lambda: data_dir)
+    corpora: List[str] = dataclasses.field(default_factory=lambda: [])
     splits: Dict[str, float] = dataclasses.field(
         default_factory=lambda: {"train": 0.8, "validation": 0.1, "test": 0.1}
     )
@@ -76,14 +76,60 @@ class AIFDBConfig:
         ]
     )
 
+    def __post_init__(
+        self,
+    ):
+        if self.name == "moral-maze":
+            self.cache_dir = data_dir / "raw" / "aifdb" / "moral-maze"
+            self.corpora = [
+                "http://corpora.aifdb.org/zip/britishempire",
+                "http://corpora.aifdb.org/zip/Money",
+                "http://corpora.aifdb.org/zip/welfare",
+                "http://corpora.aifdb.org/zip/problem",
+                "http://corpora.aifdb.org/zip/mm2012",
+                "http://corpora.aifdb.org/zip/mm2012a",
+                "http://corpora.aifdb.org/zip/bankingsystem",
+                "http://corpora.aifdb.org/zip/mm2012b",
+                "http://corpora.aifdb.org/zip/mmbs2",
+                "http://corpora.aifdb.org/zip/mm2012c",
+                "http://corpora.aifdb.org/zip/MMSyr",
+                "http://corpora.aifdb.org/zip/MoralMazeGreenBelt",
+                "http://corpora.aifdb.org/zip/MM2019DDay",
+            ]
+        elif self.name == "vacc-itc":
+            self.cache_dir = data_dir / "raw" / "aifdb" / "vacc-itc"
+            self.corpora = [
+                "http://corpora.aifdb.org/zip/VaccITC1",
+                "http://corpora.aifdb.org/zip/VaccITC2",
+                "http://corpora.aifdb.org/zip/VaccITC3",
+                "http://corpora.aifdb.org/zip/VaccITC4",
+                "http://corpora.aifdb.org/zip/VaccITC5",
+                "http://corpora.aifdb.org/zip/VaccITC6",
+                "http://corpora.aifdb.org/zip/VaccITC7",
+                "http://corpora.aifdb.org/zip/VaccITC8",
+            ]
+        elif self.name == "us2016":
+            self.cache_dir = data_dir / "raw" / "aifdb" / "us2016"
+            self.corpora = [
+                "http://corpora.aifdb.org/zip/US2016",
+            ]
+
 
 class AIFDBLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
     """loads aifdb raw data"""
 
-    def __init__(
-        self, aifdb_config: AIFDBConfig
-    ):  # pylint: disable=super-init-not-called
-        self._aifdb_config = aifdb_config
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._aifdb_config = AIFDBConfig(
+            **{
+                field.name: kwargs[field.name]
+                for field in dataclasses.fields(AIFDBConfig)
+                if field.name in kwargs
+            }
+        )
+        logging.debug(
+            "AIFDBLoader using config: %s", dataclasses.asdict(self._aifdb_config)
+        )
 
     @staticmethod
     def _read_textfile(textfile: Path) -> str:
@@ -315,12 +361,12 @@ class AIFDBBuilder(Builder):
 
         return dataset
 
-    def __init__(self, aifdb_config: AIFDBConfig) -> None:
+    def __init__(self, **kwargs) -> None:
         """
         A fresh builder instance should contain a blank product object, which is
         used in further assembly.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self._input: PreprocessedAIFDBExample
 
         # check whether template files are accessible
@@ -334,7 +380,13 @@ class AIFDBBuilder(Builder):
             loader=jinja2.FileSystemLoader(template_dir),
             autoescape=jinja2.select_autoescape(),
         )
-        self._aifdb_config: AIFDBConfig = aifdb_config
+        self._aifdb_config: AIFDBConfig = AIFDBConfig(
+            **{
+                field.name: kwargs[field.name]
+                for field in dataclasses.fields(AIFDBConfig)
+                if field.name in kwargs
+            }
+        )
 
     @property
     def input(self) -> PreprocessedAIFDBExample:

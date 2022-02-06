@@ -14,7 +14,7 @@ import numpy as np
 import pandas as pd
 from tqdm import tqdm  # type: ignore
 
-from deepa2.core import (
+from deepa2.builder.core import (
     ArgdownStatement,
     Builder,
     Formalization,
@@ -24,7 +24,7 @@ from deepa2.core import (
     DeepA2Item,
 )
 from deepa2.config import template_dir, package_dir
-import deepa2.jinjafilters as jjfilters
+import deepa2.builder.jinjafilters as jjfilters
 
 tqdm.pandas()
 
@@ -307,11 +307,11 @@ class ESNLIBuilder(Builder):
         ],
     }
 
-    def __init__(self) -> None:
+    def __init__(self, **kwargs) -> None:
         """
         Initialize eSNLI Builder.
         """
-        super().__init__()
+        super().__init__(**kwargs)
         self._input: PreprocessedESNLIExample
 
         # check whether template files are accessible

@@ -27,6 +27,21 @@ import datasets
 class RawExample(ABC):
     """Abstract Raw Example dataclass"""
 
+    @classmethod
+    def check_features(cls, dataset: datasets.DatasetDict):
+        """Checks whether dataset has features of raw examples"""
+        raw_example_fields = [field.name for field in dataclasses.fields(cls)]
+        for _, split in dataset.items():
+            if split.column_names != raw_example_fields:
+                logging.error(
+                    "Features of dataset with raw examples (%s) don't match raw_example_type (%s).",
+                    dataset.column_names,
+                    raw_example_fields,
+                )
+                raise ValueError(
+                    "Features of dataset with raw examples don't match raw_example_type."
+                )
+
 
 @dataclasses.dataclass
 class PreprocessedExample(ABC):
@@ -37,6 +52,22 @@ class PreprocessedExample(ABC):
         """Unbatches data and returns a PreprocessedExample"""
         unbatched_data = {k: v[0] for k, v in batched_data.items()}
         return cls(**unbatched_data)
+
+    @classmethod
+    def check_features(cls, dataset: datasets.DatasetDict):
+        """Checks whether dataset has features of preprocessed examples"""
+        prep_example_fields = [field.name for field in dataclasses.fields(cls)]
+        for _, split in dataset.items():
+            if split.column_names != prep_example_fields:
+                logging.error(
+                    "Features of dataset with raw examples (%s) "
+                    "don't match prep_example_type (%s).",
+                    dataset.column_names,
+                    prep_example_fields,
+                )
+                raise ValueError(
+                    "Features of dataset with raw examples don't match prep_example_type."
+                )
 
 
 @dataclasses.dataclass
@@ -179,7 +210,8 @@ class Builder(ABC):
         Preprocesses the dataset.
         """
 
-    def __init__(self):
+    def __init__(self, **kwargs):
+        logging.debug("Initializing Builder with config: %s", kwargs)
         self._product: List[DeepA2Item] = []
         self._input: PreprocessedExample
 
@@ -230,7 +262,7 @@ class Builder(ABC):
         """Adds metadata to product"""
 
 
-class Director:
+class Director:  # pylint: disable=too-many-instance-attributes
     """Implements a universal pipeline for building DeepA2 datasets.
 
     Typical usage example:
@@ -359,11 +391,31 @@ class Director:
             batched_result[k] = [record[k] for record in da2items]
         return batched_result
 
+    @staticmethod
+    def postprocess(
+        deepa2_record: Dict[str, Any], active_features: List[str]
+    ) -> Dict[str, Any]:
+        """postprocesses DeepA2 items"""
+        postprocessed = deepa2_record
+        for key, value in postprocessed.items():
+            if key not in active_features:
+                postprocessed[key] = None
+            elif value in [
+                [QuotedStatement()],
+                [Formalization()],
+                [ArgdownStatement()],
+            ]:
+                postprocessed[key] = []
+
+        return postprocessed
+
     def transform(
         self,
         export_path: Optional[str] = None,
+        active_features: Optional[List[str]] = None,
         debug_size: Optional[int] = None,
         name: str = "default_name",
+        **kwargs,
     ) -> None:
         """
         Implements the universal pipeline for transforming datasets.
@@ -373,6 +425,7 @@ class Director:
             "#################################################################"
         )
         logging.info("Starting new %s transformation: {datetime.datetime.now()}", name)
+        logging.debug("Configuration: %s", kwargs)
 
         # 1. Load dataset
         dataset = self.dataset_loader.load_dataset()
@@ -383,52 +436,29 @@ class Director:
                 list(dataset.keys()),
             )
         # check features
-        raw_example_fields = [
-            field.name for field in dataclasses.fields(self.raw_example_type)
-        ]
-        for split in dataset.keys():
-            if dataset[split].column_names != raw_example_fields:
-                logging.error(
-                    "Features of dataset with raw examples (%s) don't match raw_example_type (%s).",
-                    dataset.column_names,
-                    raw_example_fields,
-                )
-                raise ValueError(
-                    "Features of dataset with raw examples don't match raw_example_type."
-                )
+        self.raw_example_type.check_features(dataset)
         logging.info("Loaded dataset: %s", dataset)
 
         # 2. Work on small subset for debugging
         if debug_size:
-            for split in dataset.keys():
-                dataset[split] = dataset[split].filter(
+            for key, split in dataset.items():
+                dataset[key] = split.filter(
                     lambda ex, idx: 1 if (idx < debug_size) else 0, with_indices=True
                 )
             logging.info("Debug mode, working with filtered raw dataset: %s", dataset)
 
         # 3. Preprocess each split
-        for split in dataset.keys():
+        for key, split in dataset.items():
             logging.info("Preprocessing split %s ...", split)
-            dataset[split] = self.builder.preprocess(dataset[split])
+            dataset[key] = self.builder.preprocess(split)
         # check features
-        pp_example_fields = [
-            field.name for field in dataclasses.fields(self.preprocessed_example_type)
-        ]
-        for split in dataset.keys():
-            if dataset[split].column_names != pp_example_fields:
-                logging.error(
-                    "Features of dataset with preprocessed examples "
-                    "(%s) don't match raw_example_type (%s).",
-                    dataset.column_names,
-                    pp_example_fields,
-                )
-                raise ValueError(
-                    "Features of dataset with preprocessed examples "
-                    "don't match preprocessed_example_type."
-                )
+        self.preprocessed_example_type.check_features(dataset)
         logging.info("Preprocessed dataset: %s", dataset)
 
         # 4. Transform
+        pp_example_fields = [
+            field.name for field in dataclasses.fields(self.preprocessed_example_type)
+        ]
         dataset = dataset.map(
             self.process,
             batched=True,
@@ -438,24 +468,29 @@ class Director:
         logging.info("Created new %s deepa2 dataset: %s", name, dataset)
         logging.debug("Features: %s", dataset["train"].info.features)
 
-        # 5. Remove metadata
+        # 6. Postprocess the dataset
         if (not debug_size) and all(
-            "metadata" in dataset[split].column_names for split in dataset.keys()
+            "metadata" in split.column_names for _, split in dataset.items()
         ):
-            dataset = dataset.remove_columns("metadata")
+            for key, split in dataset.items():
+                dataset[key] = split.remove_columns("metadata")
             logging.info("Removed metadata from deepa2 dataset")
+        if not active_features:
+            active_features = list(dataset.column_names.values())[0]
 
-        # TODO: Remove dummy sub-items (QutedStatements etc. that are not used) # pylint: disable=fixme
-        # best write another cleaner/postprocessor function that will be mapped over data
+        def function(example):
+            return self.postprocess(example, active_features=active_features)
+
+        dataset = dataset.map(function)
 
         # 6. Save to disk
         if export_path:
             path = Path(export_path, name)
-            for split in dataset.keys():
-                logging.info("Saving %s split %s ...", name, split)
-                file_name = f"{split}.parquet"
-                (path / split).mkdir(
+            for key, split in dataset.items():
+                logging.info("Saving %s split %s ...", name, key)
+                file_name = f"{key}.parquet"
+                (path / key).mkdir(
                     parents=True, exist_ok=True
                 )  # create dirs if necessary
-                dataset[split].to_parquet(path / split / file_name)
+                split.to_parquet(path / key / file_name)
             logging.info("Saved %s deepa2 dataset to %s.", name, path)

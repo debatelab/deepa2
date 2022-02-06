@@ -6,7 +6,7 @@ from typing import List, Union, Dict
 
 import datasets
 
-from deepa2.core import (
+from deepa2.builder.core import (
     DatasetLoader,
     Director,
     Builder,

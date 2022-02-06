@@ -1,6 +1,6 @@
-![unit tests](https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg) ![code quality](https://github.com/debatelab/deepa2-datasets/actions/workflows/code_quality_checks.yml/badge.svg)
+![unit tests](https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg?branch=main) ![code quality](https://github.com/debatelab/deepa2-datasets/actions/workflows/code_quality_checks.yml/badge.svg?branch=main)
 
-# deepa2-datasets
+# Deep Argument Analysis (deepa2)
 
 Resources for Creating, Importing and Managing DeepA2 Argument Analysis Framework Datasets.
 
