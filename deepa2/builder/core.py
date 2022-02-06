@@ -24,17 +24,18 @@ import datasets
 
 
 @dataclasses.dataclass
-class RawExample(ABC):
-    """Abstract Raw Example dataclass"""
+class BaseExample(ABC):
+    """Abstract Base Example dataclass"""
 
     @classmethod
     def check_features(cls, dataset: datasets.DatasetDict):
-        """Checks whether dataset has features of raw examples"""
+        """Checks whether dataset has features of examples"""
         raw_example_fields = [field.name for field in dataclasses.fields(cls)]
         for _, split in dataset.items():
             if split.column_names != raw_example_fields:
                 logging.error(
-                    "Features of dataset with raw examples (%s) don't match raw_example_type (%s).",
+                    "Features of dataset with raw examples (%s) "
+                    "don't match raw_example_type (%s).",
                     dataset.column_names,
                     raw_example_fields,
                 )
@@ -44,30 +45,19 @@ class RawExample(ABC):
 
 
 @dataclasses.dataclass
-class PreprocessedExample(ABC):
-    """Abstract Preprocessed Example dataclass"""
+class RawExample(BaseExample):
+    """Raw Example dataclass"""
+
+
+@dataclasses.dataclass
+class PreprocessedExample(BaseExample):
+    """Preprocessed Example dataclass"""
 
     @classmethod
     def from_batch(cls, batched_data: Dict[str, List]):
         """Unbatches data and returns a PreprocessedExample"""
         unbatched_data = {k: v[0] for k, v in batched_data.items()}
         return cls(**unbatched_data)
-
-    @classmethod
-    def check_features(cls, dataset: datasets.DatasetDict):
-        """Checks whether dataset has features of preprocessed examples"""
-        prep_example_fields = [field.name for field in dataclasses.fields(cls)]
-        for _, split in dataset.items():
-            if split.column_names != prep_example_fields:
-                logging.error(
-                    "Features of dataset with raw examples (%s) "
-                    "don't match prep_example_type (%s).",
-                    dataset.column_names,
-                    prep_example_fields,
-                )
-                raise ValueError(
-                    "Features of dataset with raw examples don't match prep_example_type."
-                )
 
 
 @dataclasses.dataclass
