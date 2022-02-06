@@ -2,7 +2,7 @@
 
 # Deep Argument Analysis (deepa2)
 
-Resources for Creating, Importing and Managing DeepA2 Argument Analysis Framework Datasets.
+Resources for creating, importing, managing, and using DeepA2 datasets (Deep Argument Analysis Framework).
 
 * [Documentation](docs/)
 * DeepA2 Datasets
