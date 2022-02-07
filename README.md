@@ -1,6 +1,15 @@
-![unit tests](https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg?branch=main) ![code quality](https://github.com/debatelab/deepa2-datasets/actions/workflows/code_quality_checks.yml/badge.svg?branch=main)
+<p align="center">
+    <a href="https://github.com/debatelab/deepa2/actions/workflows/run_pytest.yml">
+        <img alt="unit tests" src="https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg?branch=main">
+    </a>
+    <a href="https://github.com/debatelab/deepa2/actions/workflows/code_quality_checks.yml">
+        <img alt="code quality" src="https://github.com/debatelab/deepa2-datasets/actions/workflows/code_quality_checks.yml/badge.svg?branch=main">
+    </a>
+</p>
 
-# Deep Argument Analysis (deepa2)
+<h1 align="center">
+    <p>Deep Argument Analysis (deepa2)</p>
+</h1>
 
 Resources for creating, importing, managing, and using DeepA2 datasets (Deep Argument Analysis Framework).
 
