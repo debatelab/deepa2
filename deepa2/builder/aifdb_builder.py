@@ -415,13 +415,13 @@ class AIFDBBuilder(Builder):
         record = self._product[0]
         record.argument_source = str(self.input.text)
         if self.input.reasons:
-            record.reason_statements = [
+            record.reasons = [
                 QuotedStatement(text=r, starts_at=-1, ref_reco=e + 1)
                 for e, r in enumerate(self.input.reasons)
             ]
-        n_reas = len(record.reason_statements)
+        n_reas = len(record.reasons)
         if self.input.conjectures:
-            record.conclusion_statements = [
+            record.conjectures = [
                 QuotedStatement(text=j, starts_at=-1, ref_reco=n_reas + 1)
                 for j in self.input.conjectures
             ]

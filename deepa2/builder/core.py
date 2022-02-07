@@ -87,7 +87,7 @@ class Formalization:
 
 
 @dataclasses.dataclass
-class DeepA2Item:  # pylint: disable=too-many-instance-attributes
+class DeepA2Item(BaseExample):  # pylint: disable=too-many-instance-attributes
     """
     Dataclass defining the structure of a DeepA2 example.
 
@@ -104,8 +104,8 @@ class DeepA2Item:  # pylint: disable=too-many-instance-attributes
             neighbourhood
         argdown_reconstruction: argdown snippet with reconstruction of the argument
         erroneous_argdown: a flawed reconstruction, similar to the correct one
-        reason_statements: a list of reason statements (verbatim quotes from `argument_source`)
-        conclusion_statements: a list of conjectures (verbatim quotes from `argument_source`)
+        reasons: a list of reason statements (verbatim quotes from `argument_source`)
+        conjectures: a list of conjectures (verbatim quotes from `argument_source`)
         premises: the premises of `argdown_reconstruction`
         intermediary_conclusions: the intermediary conclusions of `argdown_reconstruction`
         conclusion: the conclusion of `argdown_reconstruction`
@@ -131,10 +131,10 @@ class DeepA2Item:  # pylint: disable=too-many-instance-attributes
     argdown_reconstruction: str = ""
     erroneous_argdown: str = ""
 
-    reason_statements: List[QuotedStatement] = dataclasses.field(
+    reasons: List[QuotedStatement] = dataclasses.field(
         default_factory=lambda: [QuotedStatement()]
     )
-    conclusion_statements: List[QuotedStatement] = dataclasses.field(
+    conjectures: List[QuotedStatement] = dataclasses.field(
         default_factory=lambda: [QuotedStatement()]
     )
 

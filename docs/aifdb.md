@@ -87,8 +87,8 @@ From each preprocessed AIFdb example, we build a single DeepA2 item. It's straig
 
 <!-- -->
 
-- [x] `reason_statements`
-- [x] `conclusion_statements`
+- [x] `reasons`
+- [x] `conjectures`
 - [ ] `distractors`
 
 <!-- -->

@@ -494,8 +494,8 @@ class ESNLIBuilder(Builder):
 
         # 4.b) walk through list and compile source text as well as reason, conclusions, distractors
         record.argument_source = ""
-        record.reason_statements = []
-        record.conclusion_statements = []
+        record.reasons = []
+        record.conjectures = []
         record.distractors = []
         for item in argument_source_list:
             pointer = len(record.argument_source)
@@ -506,9 +506,9 @@ class ESNLIBuilder(Builder):
                 record.argument_source += item[1].text
                 item[1].starts_at = pointer
                 if item[0] == "reason":
-                    record.reason_statements.append(item[1])
+                    record.reasons.append(item[1])
                 else:
-                    record.conclusion_statements.append(item[1])
+                    record.conjectures.append(item[1])
             record.argument_source += " "
 
         record.argument_source = record.argument_source.strip(" ")
@@ -519,8 +519,8 @@ class ESNLIBuilder(Builder):
         # source paraphrase
         sp_template = self._env.get_template(config.source_paraphrase_template_path)
         record.source_paraphrase = sp_template.render(
-            premises=[d.text for d in record.reason_statements],
-            conclusion=[d.text for d in record.conclusion_statements],
+            premises=[d.text for d in record.reasons],
+            conclusion=[d.text for d in record.conjectures],
         )
         # title, context
         #   - so far missing

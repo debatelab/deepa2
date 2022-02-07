@@ -113,8 +113,8 @@ Thirdly, we construct lists of reasons and conjectures, which identify explicitl
 
 <!-- -->
 
-- [x] `reason_statements`
-- [x] `conclusion_statements`
+- [x] `reasons`
+- [x] `conjectures`
 - [x] `distractors`
 
 <!-- -->
