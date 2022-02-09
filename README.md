@@ -26,7 +26,7 @@ source my-projects-venv/bin/activate
 python -m pip install git+https://github.com/debatelab/deepa2.git
 ```
 
-2. Integrate `deepa2` preprocessor into your training pipeline. E.g., in you training script add:
+2. Add `deepa2` preprocessor to your training pipeline. Your training script may look like, for example:
 
 ```sh
 #!/bin/bash
@@ -51,6 +51,8 @@ python examples/pytorch/summarization/run_summarization.py \
 # clean-up
 rm -r tmp/t2t-deepa2
 ```
+
+3. That's it.
 
 
 ## Create DeepA2 datasets with `deepa2` from existing NLP data
