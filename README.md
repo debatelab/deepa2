@@ -26,7 +26,7 @@ source my-projects-venv/bin/activate
 python -m pip install git+https://github.com/debatelab/deepa2.git
 ```
 
-2. Add `deepa2` preprocessor to your training pipeline. E.g., in you training script add:
+2. Integrate `deepa2` preprocessor into your training pipeline. E.g., in you training script add:
 
 ```sh
 #!/bin/bash
