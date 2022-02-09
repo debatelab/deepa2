@@ -2,12 +2,17 @@
 
 import logging
 import pathlib
+import sys
 from typing import Optional
 
 import typer
 import yaml
 
-from deepa2.builder.core import Builder, Director, DatasetLoader
+from deepa2.builder import (
+    Builder,
+    Director,
+    DatasetLoader,
+)
 from deepa2.builder.aifdb_builder import (
     AIFDBBuilder,
     AIFDBLoader,
@@ -19,6 +24,7 @@ from deepa2.builder.nli_builder import (
     RawESNLIExample,
     PreprocessedESNLIExample,
 )
+from deepa2.preptrain import T2TPreprocessor
 
 logging.basicConfig(filename="deepa2.log", level=logging.DEBUG)
 
@@ -81,9 +87,41 @@ def build(  # pylint: disable=too-many-arguments
 
 
 @app.command()
-def preptrain():
+def preptrain(  # pylint: disable=too-many-arguments
+    path: Optional[str] = None,
+    revision: Optional[str] = None,
+    export_path: Optional[str] = None,
+    input_column_name: Optional[str] = "text",
+    target_column_name: Optional[str] = "target",
+    configfile: Optional[str] = None,
+):
     """
     Prepares a DeepA2 dataset for text-2-text training
     """
 
-    typer.echo("Preparing deepa2 dataset")
+    config = {}
+    if configfile:
+        config_path = pathlib.Path(configfile)
+        if config_path.exists():
+            with config_path.open(encoding="utf8") as yaml_file:
+                config = yaml.load(yaml_file, Loader=yaml.Loader)
+    # cmd-line args overwrite configfile
+    if path:
+        config["sources"] = [{"path": path, "revision": revision}]
+    if export_path:
+        config["export_path"] = export_path
+    config["input_column_name"] = input_column_name
+    config["target_column_name"] = target_column_name
+
+    if "sources" not in config:
+        typer.echo(
+            "No source dataset specified, exiting without having run preprocessor."
+        )
+        sys.exit(-1)
+
+    if "export_path" not in config:
+        logging.warning("No export specified, defaulting to ./exported.")
+        config["export_path"] = "exported"
+
+    t2t_preprocessor = T2TPreprocessor(**config)
+    t2t_preprocessor.transform()

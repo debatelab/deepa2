@@ -1,4 +1,4 @@
-"""tests the core.Director pipeline by means of a dummy builder"""
+"""tests the builder.Director pipeline by means of a dummy builder"""
 
 import dataclasses
 import pathlib
@@ -6,13 +6,16 @@ from typing import List, Union, Dict
 
 import datasets
 
-from deepa2.builder.core import (
+from deepa2 import (
+    DeepA2Item,
+)
+
+from deepa2.builder import (
     DatasetLoader,
     Director,
-    Builder,
-    DeepA2Item,
     PreprocessedExample,
     RawExample,
+    Builder,
 )
 
 
