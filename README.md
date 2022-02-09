@@ -38,15 +38,15 @@ python -m pip install git+https://github.com/debatelab/deepa2.git
 # prepare for text2text training
 deepa2 preptrain \
     --path some-deepa2-dataset \
-    --export_path tmp/t2t-deepa2 \
+    --export_path tmp/t2t-deepa2 \  # <<< !
 
 # train with default training script, e.g.
 python examples/pytorch/summarization/run_summarization.py \
-    --dataset_name tmp/t2t-deepa2 \
+    --dataset_name tmp/t2t-deepa2 \ # <<< !
     --text_column "text" \
     --summary_column "target" \
     --...
-    
+
 # clean-up
 rm -r tmp/t2t-deepa2
 ```
