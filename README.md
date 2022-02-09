@@ -42,13 +42,10 @@ deepa2 preptrain \
 
 # train with default training script, e.g.
 python examples/pytorch/summarization/run_summarization.py \
-    --model_name_or_path t5-small \
-    --do_train \
     --dataset_name tmp/t2t-deepa2 \
     --text_column "text" \
     --summary_column "target" \
-    --source_prefix "" \
-
+    --...
 # clean-up
 rm -r tmp/t2t-deepa2
 ```
