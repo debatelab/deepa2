@@ -31,7 +31,7 @@ python -m pip install git+https://github.com/debatelab/deepa2.git
 ```sh
 #!/bin/bash
 
-# configure and activate environemnt
+# configure and activate environment
 ...
 
 # download deepa2 datasets and 
@@ -40,7 +40,8 @@ deepa2 preptrain \
     --path some-deepa2-dataset \
     --export_path tmp/t2t-deepa2 \  # <<< !
 
-# train with default training script, e.g.
+# run default training script, 
+# e.g., with 🤗 Transformers
 python examples/pytorch/summarization/run_summarization.py \
     --dataset_name tmp/t2t-deepa2 \ # <<< !
     --text_column "text" \
@@ -79,7 +80,7 @@ poetry run deepa2 build \\
 We welcome contributions to this repository, especially scripts that port existing datasets to the DeepA2 Framework. Within this repo, a code module that transforms data into the DeepA2 format contains
 
 1. a Builder class that describes how DeepA2 examples will be constructed and that implements the abstract `core.Builder` interface (such as, e.g., `nli_builder.ESNLIBuilder`);
-2. a DataLoader which provides a method for loading the raw data as a HF Dataset object (such as, for example, `aifdb_builder.AIFDBLoader`) -- you may use `core.DataLoader` as is in case the data is available in a way compatible with HF Dataset;
+2. a DataLoader which provides a method for loading the raw data as a 🤗 Dataset object (such as, for example, `aifdb_builder.AIFDBLoader`) -- you may use `core.DataLoader` as is in case the data is available in a way compatible with 🤗 Dataset;
 3. dataclasses which describe the features of the raw data and the preprocessed data, and which extend the dummy classes `core.RawExample` and `core.PreprocessedExample`;
 4. a collection of unit tests that check the concrete Builder's methods (such as, e.g., `tests/test_esnli.py`);
 5. a documentation of the pipeline (as for example in `docs/esnli.md`).
