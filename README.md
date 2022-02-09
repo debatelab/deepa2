@@ -16,7 +16,45 @@ Resources for creating, importing, managing, and using DeepA2 datasets (Deep Arg
 * [Documentation](docs/)
 * DeepA2 Datasets
 
-## Getting Started
+
+## Integrating `deepa2` into Your Training Pipeline
+
+1. Install `deepa2` into your ML project's virtual environment, e.g.:
+
+```bash
+source my-projects-venv/bin/activate 
+python -m pip install git+https://github.com/debatelab/deepa2.git
+```
+
+2. Add `deepa2` preprocessor to your training pipeline. E.g., in you training script add:
+
+```sh
+#!/bin/bash
+
+# configure and activate environemnt
+...
+
+# download deepa2 datasets and 
+# prepare for text2text training
+deepa2 preptrain \
+    --path some-deepa2-dataset \
+    --export_path tmp/t2t-deepa2 \
+
+# train with default training script, e.g.
+python examples/pytorch/summarization/run_summarization.py \
+    --model_name_or_path t5-small \
+    --do_train \
+    --dataset_name tmp/t2t-deepa2 \
+    --text_column "text" \
+    --summary_column "target" \
+    --source_prefix "" \
+
+# clean-up
+rm -r tmp/t2t-deepa2
+```
+
+
+## Create DeepA2 datasets with `deepa2` from existing NLP data
 
 Install [poetry](https://python-poetry.org/docs/#installation). 
 
