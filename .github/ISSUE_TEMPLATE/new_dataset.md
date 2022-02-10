@@ -5,11 +5,6 @@ title: "[DATASET NAME]"
 labels: "enhancement"
 ---
 
-<!-- 
-This is a comment and will be hidden :)
-Thanks for helping us to improve deepa2!
--->
-
 
 #### Name of the dataset to import 
 Write here

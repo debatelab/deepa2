@@ -92,7 +92,7 @@ We welcome contributions to this repository, especially scripts that port existi
 4. a collection of unit tests that check the concrete Builder's methods (such as, e.g., `tests/test_esnli.py`);
 5. a documentation of the pipeline (as for example in `docs/esnli.md`).
 
-Consider **suggesting** to collaboratively construct such a pipeline by opening a [new issue](https://github.com/debatelab/deepa2-datasets/issues).
+Consider **suggesting** to collaboratively construct such a pipeline by opening a [new issue](https://github.com/debatelab/deepa2/issues/new?assignees=&labels=enhancement&template=new_dataset.md&title=%5BDATASET+NAME%5D).
 
 ## Citation
 
