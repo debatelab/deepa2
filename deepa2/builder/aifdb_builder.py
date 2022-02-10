@@ -9,7 +9,7 @@ import logging
 from pathlib import Path
 import random
 import re
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Any
 import zipfile
 
 import jinja2
@@ -32,7 +32,7 @@ from deepa2.config import template_dir, package_dir, data_dir
 class RawAIFDBExample(RawExample):
     """dataclass of raw aifdb example"""
 
-    nodeset: Union[str, List[str]]
+    nodeset: Union[Dict[str, Any], List[Dict[str, Any]]]
     text: Union[str, List[str]]
     corpus: Union[str, List[str]]
 
