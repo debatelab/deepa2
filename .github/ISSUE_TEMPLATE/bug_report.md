@@ -1,7 +1,7 @@
 ---
-name: Bug issue
+name: Bug
 about: Use this template for reporting bugs.
-title: "[DATE]: [BUG NAME]"
+title: "[BUG NAME]"
 labels: ":bug: Bug"
 ---
 
@@ -35,7 +35,3 @@ Write here
 
 #### Reported by
 Write here
-
-
-<!-- Don't edit below this line -->
-/label ~Bug
