@@ -74,10 +74,10 @@ Install this package from within the repo's root folder:
 poetry install
 ```
 
-Run a script, e.g.:
+Bake a DeepA2 dataset, e.g.:
 ```bash
 poetry run deepa2 bake \\
-  --name esnli \\
+  --name esnli \\                   # <<< 🥚
   --debug-size 100 \\
   --export-path ./data/processed    # >>> 🎂  
 ```
