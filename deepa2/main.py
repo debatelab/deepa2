@@ -24,6 +24,12 @@ from deepa2.builder.nli_builder import (
     RawESNLIExample,
     PreprocessedESNLIExample,
 )
+from deepa2.builder.entailmentbank_builder import (
+    EnBankBuilder,
+    EnBankLoader,
+    RawEnBankExample,
+    PreprocessedEnBankExample,
+)
 from deepa2.preptrain import T2TPreprocessor
 
 logging.basicConfig(filename="deepa2.log", level=logging.DEBUG)
@@ -78,6 +84,11 @@ def bake(  # pylint: disable=too-many-arguments
         dataset_loader = AIFDBLoader(**config)
         director.raw_example_class = RawAIFDBExample
         director.preprocessed_example_class = PreprocessedAIFDBExample
+    elif config["source_type"] == "enbank":
+        builder = EnBankBuilder(**config)
+        dataset_loader = EnBankLoader(**config)
+        director.raw_example_class = RawEnBankExample
+        director.preprocessed_example_class = PreprocessedEnBankExample
     else:
         typer.echo(f"Unknown source_type: {config['source_type']}")
 

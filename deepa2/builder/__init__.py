@@ -10,3 +10,4 @@ from deepa2.builder.core import (
     PreprocessedExample,
     RawExample,
 )
+from deepa2.builder.utils import DownloadManager

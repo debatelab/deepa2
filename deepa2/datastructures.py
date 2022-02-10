@@ -24,15 +24,18 @@ class BaseExample(ABC):
         example_fields = [field.name for field in dataclasses.fields(cls)]
         fields_without_meta = [name for name in example_fields if name != "metadata"]
         for _, split in dataset.items():
-            if split.column_names not in (example_fields, fields_without_meta):
+            if set(split.column_names) not in (
+                set(example_fields), set(fields_without_meta)
+            ):
                 logging.error(
-                    "Features of dataset with raw examples (%s) "
-                    "don't match raw_example_class (%s).",
+                    "Features of dataset with examples (%s) "
+                    "don't match example_class %s (%s).",
                     dataset.column_names,
+                    cls,
                     example_fields,
                 )
                 raise ValueError(
-                    "Features of dataset with raw examples don't match raw_example_class."
+                    "Features of dataset with examples don't match example_class."
                 )
 
 
