@@ -1,4 +1,4 @@
-<p align="center">
+<p align="left">
     <a href="https://github.com/debatelab/deepa2/actions/workflows/run_pytest.yml">
         <img alt="unit tests" src="https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg?branch=main">
     </a>
@@ -7,17 +7,22 @@
     </a>
 </p>
 
-<h1 align="center">
-    <p>Deep Argument Analysis (deepa2)</p>
-</h1>
+# Deep Argument Analysis (`deepa2`)</p>
 
-Resources for creating, importing, managing, and using DeepA2 datasets (Deep Argument Analysis Framework).
+This project provides `deepa2`, which
 
-* [Documentation](docs/)
-* DeepA2 Datasets
+1. 🥚 takes NLP data (e.g. NLI, argument mining) as ingredient;
+2. 🎂 bakes DeepA2 datatsets conforming to the [Deep Argument Analysis Framework](https://arxiv.org/abs/2110.01509);
+3. 🍰 serves DeepA2 data as text2text datasets suitable for training language models.
+
+There's a public collection of 🎂 DeepA2 datatsets baked with `deepa2` at the [HF hub](https://huggingface.co/datasets/debatelab/deepa2).
+
+The [Documentation](docs/) describes usage options and gives background info on the Deep Argument Analysis Framework.
 
 
-## Integrating `deepa2` into Your Training Pipeline
+## Quickstart
+
+### Integrating `deepa2` into Your Training Pipeline
 
 1. Install `deepa2` into your ML project's virtual environment, e.g.:
 
@@ -37,13 +42,13 @@ python -m pip install git+https://github.com/debatelab/deepa2.git
 # download deepa2 datasets and 
 # prepare for text2text training
 deepa2 preptrain \
-    --path some-deepa2-dataset \
-    --export_path tmp/t2t-deepa2 \  # >>> 🎂
+    --path some-deepa2-dataset \    # <<< 🎂
+    --export_path tmp/t2t-deepa2 \  # >>> 🍰
 
 # run default training script, 
 # e.g., with 🤗 Transformers
-python examples/pytorch/summarization/run_summarization.py \
-    --dataset_name tmp/t2t-deepa2 \ # <<< 🎂
+python .../run_summarization.py \
+    --dataset_name tmp/t2t-deepa2 \ # <<< 🍰
     --text_column "text" \
     --summary_column "target" \
     --...
@@ -55,7 +60,7 @@ rm -r tmp/t2t-deepa2
 3. That's it.
 
 
-## Create DeepA2 datasets with `deepa2` from existing NLP data
+### Create DeepA2 datasets with `deepa2` from existing NLP data
 
 Install [poetry](https://python-poetry.org/docs/#installation). 
 
@@ -74,7 +79,7 @@ Run a script, e.g.:
 poetry run deepa2 build \\
   --name esnli \\
   --debug-size 100 \\
-  --export-path ./data/processed    
+  --export-path ./data/processed    # >>> 🎂  
 ```
 
 ## Contribute a DeepA2Builder for another Dataset
