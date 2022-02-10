@@ -32,7 +32,7 @@ app = typer.Typer()
 
 
 @app.command()
-def build(  # pylint: disable=too-many-arguments
+def bake(  # pylint: disable=too-many-arguments
     name: Optional[str] = None,
     source_type: Optional[str] = None,
     path: Optional[str] = None,
@@ -87,7 +87,7 @@ def build(  # pylint: disable=too-many-arguments
 
 
 @app.command()
-def preptrain(  # pylint: disable=too-many-arguments
+def serve(  # pylint: disable=too-many-arguments
     path: Optional[str] = None,
     revision: Optional[str] = None,
     export_path: Optional[str] = None,
