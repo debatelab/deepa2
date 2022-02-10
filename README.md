@@ -41,7 +41,7 @@ python -m pip install git+https://github.com/debatelab/deepa2.git
 
 # download deepa2 datasets and 
 # prepare for text2text training
-deepa2 preptrain \
+deepa2 serve \
     --path some-deepa2-dataset \    # <<< 🎂
     --export_path tmp/t2t-deepa2 \  # >>> 🍰
 
@@ -76,7 +76,7 @@ poetry install
 
 Run a script, e.g.:
 ```bash
-poetry run deepa2 build \\
+poetry run deepa2 bake \\
   --name esnli \\
   --debug-size 100 \\
   --export-path ./data/processed    # >>> 🎂  
