@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import pathlib
+import random
 from typing import List, Dict, Union, Any
 import zipfile
 
@@ -103,9 +104,6 @@ class EnBankLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
             with zipfile.ZipFile(tmp_zip) as zip_file:
                 zip_file.extractall(str(enbank_dir.resolve()))
             tmp_zip.unlink()
-            #            request = requests.get(self._ENBANK_BASE_URL)
-            #            with zipfile.ZipFile(io.BytesIO(request.content)) as zip_file:
-            #                zip_file.extractall(str(enbank_dir.resolve()))
             logging.debug("Saved %s to %s.", self._ENBANK_BASE_URL, enbank_dir)
 
         # load entailment-bank dataset from disk
@@ -122,10 +120,7 @@ class EnBankLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
             )
             logging.debug("Loading local source file %s", source_file)
             dataset_dict[target_key] = datasets.Dataset.from_pandas(
-                pd.read_json(
-                    source_file.resolve(),
-                    lines=True
-                )
+                pd.read_json(source_file.resolve(), lines=True)
             )
 
         dataset_dict = datasets.DatasetDict(dataset_dict)
@@ -139,11 +134,14 @@ class EnBankBuilder(Builder):
     e-SNLI records into DeepA2 items.
     """
 
-    _PREMISE_TEMPLATE = "({{ label }}) {{ premise }}"
-    _CONCLUSION_TEMPLATE = (
-        "--\nwith ?? from{% for from in froml %} "
-        "({{ from }}){% endfor %}\n--\n({label}) {conclusion}"
-    )
+    _TEMPLATE_STRINGS = {
+        "premise": "({{ label }}) {{ premise }}",
+        "conclusion": (
+            "--\nwith ?? from{% for from in froml %} "
+            "({{ from }}){% endfor %}\n--\n({label}) {conclusion}"
+        ),
+        "source_text": "{{ question_text }} {{ answer_text }}. that is because {{ statements }}",
+    }
 
     @staticmethod
     def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
@@ -172,10 +170,133 @@ class EnBankBuilder(Builder):
         super().__init__(**kwargs)
         self._input: PreprocessedEnBankExample
 
-        self._env = jinja2.Environment(
+        self._random = random.Random()
+
+        env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(template_dir),
             autoescape=jinja2.select_autoescape(),
         )
+        self._templates = {
+            k: env.from_string(v) for k, v in self._TEMPLATE_STRINGS.items()
+        }
+
+    def _process_proof_step(
+        self,
+        proof_step: str,
+        triples: str = None,
+        intermediate_conclusions: str = None,
+        labels: dict = None,
+    ):
+        """
+        processes a single proof/inference step (sub-argument)
+        """
+        temp_split = proof_step.split(" -> ")
+        conclusion = temp_split[-1]
+        conclusion = conclusion.split(":")[0]
+        if conclusion == "hypothesis":
+            conclusion = sorted(intermediate_conclusions.keys())[-1]
+
+        premises = temp_split[0].split(" & ")  # split antecendens
+
+        # construct further labels
+        labels = labels.copy() if labels else {}
+        n_labels = len(labels)
+        # construct premises and conclusions
+        argdown_items = []
+        i = 1
+        froml = []
+        for premise in premises:
+            if premise[:4] == "sent":
+                labels.update({premise: n_labels + i})
+                i += 1
+                argdown_items.append(
+                    self._templates["premise"].render(
+                        label=labels[premise], premise=triples[premise]
+                    )
+                )
+            froml.append(str(labels[premise]))
+        froml = ",".join(froml)
+
+        labels.update({conclusion: len(labels) + 1})
+        argdown_items.append(
+            self._templates["conclusion"].render(
+                label=labels[conclusion],
+                froml=froml,
+                conclusion=intermediate_conclusions[conclusion],
+            )
+        )
+
+        return argdown_items, labels
+
+    def _generate_argdown(
+        self,
+        proof: str = None,
+        triples: str = None,
+        intermediate_conclusions: str = None,
+    ):
+        """
+        generates argdown and labels dict
+        """
+        labels = {}
+        argdown_list = []
+        step_list = proof.split("; ")[:-1]
+        for step in step_list:
+            argdown_items, labels = self._process_proof_step(
+                step,
+                triples=triples,
+                intermediate_conclusions=intermediate_conclusions,
+                labels=labels,
+            )
+            argdown_list = argdown_list + argdown_items
+        argdown = "\n".join(argdown_list)
+        return argdown, labels
+
+    def _generate_source(
+        self,
+        question_text: str = None,
+        answer_text: str = None,
+        triples: dict = None,
+        distractors: list = None,
+    ):
+        """generates source text"""
+        if distractors is None:
+            distractors = []
+        statements = list(triples.keys())
+        statements = self._random.sample(statements, k=len(statements))
+        reason_order = [s for s in statements if s not in distractors]
+        statements = [triples.get(s, s) for s in statements]
+        statements = [s + "." for s in statements]
+        statements = " ".join(statements)
+        source = self._templates["source_text"].render(
+            question_text=question_text.lower(),
+            answer_text=answer_text.lower().strip("."),
+            statements=statements,
+        )
+        return source, reason_order
+
+    @staticmethod
+    def _generate_reason_statements(
+        triples: dict = None, reason_order: list = None, labels: dict = None
+    ):
+        """
+        generates reasons
+        """
+        reason_s = [{"text": triples[k], "ref_reco": labels[k]} for k in reason_order]
+        return reason_s
+
+    @staticmethod
+    def _generate_conjectures(
+        question_text: str = None, answer_text: str = None, labels: dict = None
+    ):
+        """
+        generates conjectures, final conclusion is sole conjectures
+        all intermediary conclusions are implicit
+        """
+        question_text = question_text.split(". ")[-1].lower()
+        answer_text = answer_text.lower().strip(".")
+        text = f"{question_text} {answer_text}."
+        conjectures = [{"text": text, "ref_reco": max(labels.values())}]
+        return conjectures
 
     @property
     def input(self) -> PreprocessedEnBankExample:
