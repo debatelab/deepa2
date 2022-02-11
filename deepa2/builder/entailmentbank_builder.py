@@ -67,10 +67,19 @@ class PreprocessedEnBankExample(PreprocessedExample):
 
 
 class EnBankLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
-    """loads aifdb raw data"""
+    """loads EntailmentBank raw data"""
 
     _ENBANK_BASE_URL = "https://drive.google.com/file/d/1EduT00qkDU6DAD-Bjgheh-o8MVbx1NZS/view?usp=sharing"  # pylint: disable=line-too-long
     _ENBANK_GDRIVE_ID = "1EduT00qkDU6DAD-Bjgheh-o8MVbx1NZS"
+
+    def __init__(self, **kwargs) -> None:
+        super().__init__()
+        self._task: str = kwargs.get("name", "task_1")
+        if "name" not in kwargs:
+            logging.info("No EnBank task specified (via --name), using task_1.")
+        if self._task not in ["task_1", "task_2"]:
+            logging.info("Invalid EnBank task name %s, using task_1.", self._task)
+            self._task = "task_1"
 
     def load_dataset(self) -> datasets.DatasetDict:
 
@@ -103,20 +112,20 @@ class EnBankLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
         splits_mapping = {"train": "train", "dev": "validation", "test": "test"}
         dataset_dict = {}
         for split_key, target_key in splits_mapping.items():
-            dfs = []
-            # load and merge tasks 1 and 2
-            for task in ["task_1", "task_2"]:
-                source_file = pathlib.Path(
-                    enbank_dir,
-                    "entailment_trees_emnlp2021_data_v2",
-                    "dataset",
-                    task,
-                    f"{split_key}.jsonl",
-                )
-                logging.debug("Loading local source file %s", source_file)
-                dfs.append(pd.read_json(str(source_file.resolve()), lines=True))
+            # load task
+            source_file = pathlib.Path(
+                enbank_dir,
+                "entailment_trees_emnlp2021_data_v2",
+                "dataset",
+                self._task,
+                f"{split_key}.jsonl",
+            )
+            logging.debug("Loading local source file %s", source_file)
             dataset_dict[target_key] = datasets.Dataset.from_pandas(
-                pd.concat(dfs), preserve_index=False
+                pd.read_json(
+                    source_file.resolve(),
+                    lines=True
+                )
             )
 
         dataset_dict = datasets.DatasetDict(dataset_dict)
