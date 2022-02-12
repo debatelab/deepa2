@@ -3,7 +3,7 @@
 from abc import ABC
 import dataclasses
 import logging
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple, Union
 
 import datasets
 
@@ -144,12 +144,12 @@ class DeepA2Item(
     predicate_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
     entity_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
     misc_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
-    plchd_substitutions: Dict[str, str] = dataclasses.field(
-        default_factory=lambda: {"": ""}
+    plchd_substitutions: List[Tuple[str, str]] = dataclasses.field(
+        default_factory=lambda: []
     )
 
     distractors: List[str] = dataclasses.field(default_factory=lambda: [])
-    metadata: Dict = dataclasses.field(default_factory=lambda: {"": ""})
+    metadata: List[Tuple[str, Any]] = dataclasses.field(default_factory=lambda: [])
 
     @classmethod
     def from_batch(cls, batched_data: Dict[str, List]):

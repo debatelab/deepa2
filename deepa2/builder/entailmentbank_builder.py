@@ -10,13 +10,12 @@ from typing import List, Dict, Union, Any
 import zipfile
 
 import datasets
-import jinja2
+#import jinja2
 import pandas as pd
 from tqdm import tqdm  # type: ignore
 
 from deepa2 import (
     ArgdownStatement,
-    Formalization,
     QuotedStatement,
     DeepA2Item,
 )
@@ -26,8 +25,14 @@ from deepa2.builder import (
     DatasetLoader,
     Builder,
     DownloadManager,
+    PipedBuilder,
+    Pipeline,
+    Transformer,
 )
-from deepa2.config import template_dir, data_dir
+from deepa2.config import (
+    #template_dir,
+    data_dir,
+)
 
 tqdm.pandas()
 
@@ -128,64 +133,23 @@ class EnBankLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
         return dataset_dict
 
 
-class EnBankBuilder(Builder):
-    """
-    Entailment Bank Builder preprocesses and transforms
-    e-SNLI records into DeepA2 items.
-    """
+class AddArgdown(Transformer):
+    """adds argdown"""
 
     _TEMPLATE_STRINGS = {
         "premise": "({{ label }}) {{ premise }}",
         "conclusion": (
             "--\nwith ?? from{% for from in froml %} "
-            "({{ from }}){% endfor %}\n--\n({label}) {conclusion}"
+            "({{ from }}){% endfor %}\n--\n({{ label }}) {{ conclusion }}"
         ),
-        "source_text": "{{ question_text }} {{ answer_text }}. that is because {{ statements }}",
     }
-
-    @staticmethod
-    def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
-
-        # expand meta data
-        def expand_meta(raw_example):
-            return raw_example["meta"]
-
-        dataset = dataset.map(expand_meta)
-
-        # remove spare columns
-        field_names = [
-            field.name for field in dataclasses.fields(PreprocessedEnBankExample)
-        ]
-        spare_columns = [
-            column for column in dataset.column_names if column not in field_names
-        ]
-        dataset = dataset.remove_columns(spare_columns)
-
-        return dataset
-
-    def __init__(self, **kwargs) -> None:
-        """
-        Initialize EnBank Builder.
-        """
-        super().__init__(**kwargs)
-        self._input: PreprocessedEnBankExample
-
-        self._random = random.Random()
-
-        env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(template_dir),
-            autoescape=jinja2.select_autoescape(),
-        )
-        self._templates = {
-            k: env.from_string(v) for k, v in self._TEMPLATE_STRINGS.items()
-        }
 
     def _process_proof_step(
         self,
         proof_step: str,
-        triples: str = None,
-        intermediate_conclusions: str = None,
-        labels: dict = None,
+        triples: Dict[str, str],
+        intermediate_conclusions: Dict[str, str],
+        labels: Dict[str, int],
     ):
         """
         processes a single proof/inference step (sub-argument)
@@ -210,16 +174,15 @@ class EnBankBuilder(Builder):
                 labels.update({premise: n_labels + i})
                 i += 1
                 argdown_items.append(
-                    self._templates["premise"].render(
+                    self.templates["premise"].render(
                         label=labels[premise], premise=triples[premise]
                     )
                 )
             froml.append(str(labels[premise]))
-        froml = ",".join(froml)
 
         labels.update({conclusion: len(labels) + 1})
         argdown_items.append(
-            self._templates["conclusion"].render(
+            self.templates["conclusion"].render(
                 label=labels[conclusion],
                 froml=froml,
                 conclusion=intermediate_conclusions[conclusion],
@@ -230,16 +193,27 @@ class EnBankBuilder(Builder):
 
     def _generate_argdown(
         self,
-        proof: str = None,
-        triples: str = None,
-        intermediate_conclusions: str = None,
+        step_proof: str = None,
+        triples: Dict[str, str] = None,
+        intermediate_conclusions: Dict[str, str] = None,
+        **kwargs,
     ):
         """
         generates argdown and labels dict
         """
-        labels = {}
-        argdown_list = []
-        step_list = proof.split("; ")[:-1]
+        
+        labels: Dict[str, int] = {}
+        argdown_list: List[str] = []
+        if step_proof is None:
+            step_proof = ""
+            logging.warning("Empty proof: %s", kwargs)
+        if triples is None:
+            triples = {}
+            logging.warning("Empty triples: %s", kwargs)
+        if intermediate_conclusions is None:
+            intermediate_conclusions = {}
+            logging.warning("Empty interm_conclusions: %s", kwargs)
+        step_list = step_proof.split("; ")[:-1]
         for step in step_list:
             argdown_items, labels = self._process_proof_step(
                 step,
@@ -251,72 +225,388 @@ class EnBankBuilder(Builder):
         argdown = "\n".join(argdown_list)
         return argdown, labels
 
+    def transform(  # type: ignore[override]
+        self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
+    ) -> DeepA2Item:
+        argdown, labels = self._generate_argdown(**dataclasses.asdict(prep_example))
+        da2_item.argdown_reconstruction = argdown
+        da2_item.metadata.append(("labels", labels))
+        return da2_item
+
+
+class AddSourceText(Transformer):
+    """add source"""
+
+    _TEMPLATE_STRINGS = {
+        "source_text": (
+            '{{ question_text }} {{ answer_text }}. '
+            'that is because {{ statements | join(" ") }}'
+        ),
+    }
+
+    def __init__(self, builder: Builder) -> None:
+        super().__init__(builder)
+        self._random = random.Random()
+
     def _generate_source(
         self,
-        question_text: str = None,
-        answer_text: str = None,
-        triples: dict = None,
-        distractors: list = None,
+        triples: Dict[str, str],
+        question_text: str,
+        answer_text: str,
+        distractors: List[str],
+        **kwargs,
     ):
         """generates source text"""
+        if triples is None:
+            triples = {}
+            logging.warning("Empty triples: %s", kwargs)
+        if question_text is None:
+            question_text = ""
+            logging.warning("Empty question_text: %s", kwargs)
+        if answer_text is None:
+            answer_text = ""
+            logging.warning("Empty answer_text: %s", kwargs)
         if distractors is None:
             distractors = []
-        statements = list(triples.keys())
+        statements = list(k for k, _ in triples.items())
         statements = self._random.sample(statements, k=len(statements))
         reason_order = [s for s in statements if s not in distractors]
         statements = [triples.get(s, s) for s in statements]
-        statements = [s + "." for s in statements]
-        statements = " ".join(statements)
-        source = self._templates["source_text"].render(
+        if statements:
+            statements = [s + "." if s else "" for s in statements]
+        source = self.templates["source_text"].render(
             question_text=question_text.lower(),
             answer_text=answer_text.lower().strip("."),
             statements=statements,
         )
         return source, reason_order
 
-    @staticmethod
-    def _generate_reason_statements(
-        triples: dict = None, reason_order: list = None, labels: dict = None
-    ):
-        """
-        generates reasons
-        """
-        reason_s = [{"text": triples[k], "ref_reco": labels[k]} for k in reason_order]
-        return reason_s
+    def transform(  # type: ignore[override]
+        self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
+    ) -> DeepA2Item:
+        #print("da2_item: %s" % da2_item)
+        #print("prep_example: %s" % prep_example)
 
-    @staticmethod
-    def _generate_conjectures(
-        question_text: str = None, answer_text: str = None, labels: dict = None
-    ):
-        """
-        generates conjectures, final conclusion is sole conjectures
-        all intermediary conclusions are implicit
-        """
-        question_text = question_text.split(". ")[-1].lower()
-        answer_text = answer_text.lower().strip(".")
+        source, reason_order = self._generate_source(**dataclasses.asdict(prep_example))
+        da2_item.argument_source = source
+        da2_item.metadata.append(("reason_order", reason_order))
+        return da2_item
+
+
+class AddReasons(Transformer):
+    """add reasons"""
+
+    def transform(  # type: ignore[override]
+        self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
+    ) -> DeepA2Item:
+        #print("da2_item: %s" % da2_item)
+        #print("prep_example: %s" % prep_example)
+        reasons = [
+            QuotedStatement(
+                text=prep_example.triples[k],
+                ref_reco=dict(da2_item.metadata)["labels"][k],
+            )
+            for k in dict(da2_item.metadata)["reason_order"]
+        ]
+        da2_item.reasons = reasons
+        return da2_item
+
+
+class AddConjectures(Transformer):
+    """adds conjectures"""
+
+    def transform(  # type: ignore[override]
+        self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
+    ) -> DeepA2Item:
+        question_text = prep_example.question_text.split(". ")[-1].lower()
+        answer_text = prep_example.answer_text.lower().strip(".")
         text = f"{question_text} {answer_text}."
-        conjectures = [{"text": text, "ref_reco": max(labels.values())}]
-        return conjectures
+        conjectures = [
+            QuotedStatement(
+                text=text, ref_reco=max(dict(da2_item.metadata)["labels"].values())
+            )
+        ]
+        da2_item.conjectures = conjectures
+        return da2_item
 
-    @property
-    def input(self) -> PreprocessedEnBankExample:
-        return self._input
+
+class AddPremisesConclusion(Transformer):
+    """adds premises and conclusion"""
+
+    def transform(  # type: ignore[override]
+        self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
+    ) -> DeepA2Item:
+        premises = [
+            ArgdownStatement(text=reason.text, ref_reco=reason.ref_reco)
+            for reason in da2_item.reasons
+        ]
+        conclusion_text = list(prep_example.intermediate_conclusions.values())[-1]
+        conclusion_text = conclusion_text.strip(".") + "."
+        conclusion = [
+            ArgdownStatement(
+                text=conclusion_text, ref_reco=max(dict(da2_item.metadata)["labels"].values())
+            )
+        ]
+        da2_item.premises = premises
+        da2_item.conclusion = conclusion
+        return da2_item
+
+
+class RemoveMetaDicts(Transformer):
+    """remove meta dicts"""
+
+    def transform(  # type: ignore[override]
+        self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
+    ) -> DeepA2Item:
+        metadata = [
+            (k, str(v))
+            for k, v
+            in da2_item.metadata
+        ]
+        da2_item.metadata = metadata
+        return da2_item
+
+
+class EnBankBuilder2(PipedBuilder):
+    """builds enbank dataset"""
+
+    @staticmethod
+    def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
+
+        # expand meta data
+        def expand_meta(raw_example):
+            return raw_example["meta"]
+
+        dataset = dataset.map(expand_meta)
+
+        # remove spare columns
+        field_names = [
+            field.name for field in dataclasses.fields(PreprocessedEnBankExample)
+        ]
+        spare_columns = [
+            column for column in dataset.column_names if column not in field_names
+        ]
+        dataset = dataset.remove_columns(spare_columns)
+
+        return dataset
+
+    def _construct_pipeline(self, **kwargs) -> Pipeline:
+        pipeline = Pipeline(
+            [
+                AddArgdown(self),
+                AddSourceText(self),
+                AddReasons(self),
+                AddConjectures(self),
+                AddPremisesConclusion(self),
+            ]
+        )
+        return pipeline
 
     def set_input(self, batched_input: Dict[str, List]) -> None:
-        self._input = PreprocessedEnBankExample.from_batch(batched_input)
+        prep_example = PreprocessedEnBankExample.from_batch(batched_input)
+        # strip dicts of None values
+        prep_example.triples = {
+            k: v for k, v 
+            in prep_example.triples.items()
+            if v
+        }
+        prep_example.intermediate_conclusions = {
+            k: v for k, v 
+            in prep_example.intermediate_conclusions.items()
+            if v
+        }
+        self._input = prep_example
 
-    def configure_product(self) -> None:
-        # populate product with configs
-        self._product.append(DeepA2Item())
+class EnBankBuilder(Builder):
+    """
+    Entailment Bank Builder preprocesses and transforms
+    entailment bank records into DeepA2 items.
+    """
 
-    def produce_da2item(self) -> None:
-        # we produce a single da2item per input only
-        record = self._product[0]
-        record.argument_source = str(self.input.answer_text)
-        # TODO!
 
-    def postprocess_da2item(self) -> None:
-        pass
-
-    def add_metadata_da2item(self) -> None:
-        pass
+#    _TEMPLATE_STRINGS = {
+#        "premise": "({{ label }}) {{ premise }}",
+#        "conclusion": (
+#            "--\nwith ?? from{% for from in froml %} "
+#            "({{ from }}){% endfor %}\n--\n({label}) {conclusion}"
+#        ),
+#        "source_text": "{{ question_text }} {{ answer_text }}. that is because {{ statements }}",
+#    }
+#
+#    @staticmethod
+#    def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:
+#
+#        # expand meta data
+#        def expand_meta(raw_example):
+#            return raw_example["meta"]
+#
+#        dataset = dataset.map(expand_meta)
+#
+#        # remove spare columns
+#        field_names = [
+#            field.name for field in dataclasses.fields(PreprocessedEnBankExample)
+#        ]
+#        spare_columns = [
+#            column for column in dataset.column_names if column not in field_names
+#        ]
+#        dataset = dataset.remove_columns(spare_columns)
+#
+#        return dataset
+#
+#    def __init__(self, **kwargs) -> None:
+#        """
+#        Initialize EnBank Builder.
+#        """
+#        super().__init__(**kwargs)
+#        self._input: PreprocessedEnBankExample
+#
+#        self._random = random.Random()
+#
+#        env = jinja2.Environment(
+#            loader=jinja2.FileSystemLoader(template_dir),
+#            autoescape=jinja2.select_autoescape(),
+#        )
+#        self._templates = {
+#            k: env.from_string(v) for k, v in self._TEMPLATE_STRINGS.items()
+#        }
+#
+#    def _process_proof_step(
+#        self,
+#        proof_step: str,
+#        triples: str = None,
+#        intermediate_conclusions: str = None,
+#        labels: dict = None,
+#    ):
+#        """
+#        processes a single proof/inference step (sub-argument)
+#        """
+#        temp_split = proof_step.split(" -> ")
+#        conclusion = temp_split[-1]
+#        conclusion = conclusion.split(":")[0]
+#        if conclusion == "hypothesis":
+#            conclusion = sorted(intermediate_conclusions.keys())[-1]
+#
+#        premises = temp_split[0].split(" & ")  # split antecendens
+#
+#        # construct further labels
+#        labels = labels.copy() if labels else {}
+#        n_labels = len(labels)
+#        # construct premises and conclusions
+#        argdown_items = []
+#        i = 1
+#        froml = []
+#        for premise in premises:
+#            if premise[:4] == "sent":
+#                labels.update({premise: n_labels + i})
+#                i += 1
+#                argdown_items.append(
+#                    self._templates["premise"].render(
+#                        label=labels[premise], premise=triples[premise]
+#                    )
+#                )
+#            froml.append(str(labels[premise]))
+#        froml = ",".join(froml)
+#
+#        labels.update({conclusion: len(labels) + 1})
+#        argdown_items.append(
+#            self._templates["conclusion"].render(
+#                label=labels[conclusion],
+#                froml=froml,
+#                conclusion=intermediate_conclusions[conclusion],
+#            )
+#        )
+#
+#        return argdown_items, labels
+#
+#    def _generate_argdown(
+#        self,
+#        proof: str = None,
+#        triples: str = None,
+#        intermediate_conclusions: str = None,
+#    ):
+#        """
+#        generates argdown and labels dict
+#        """
+#        labels = {}
+#        argdown_list = []
+#        step_list = proof.split("; ")[:-1]
+#        for step in step_list:
+#            argdown_items, labels = self._process_proof_step(
+#                step,
+#                triples=triples,
+#                intermediate_conclusions=intermediate_conclusions,
+#                labels=labels,
+#            )
+#            argdown_list = argdown_list + argdown_items
+#        argdown = "\n".join(argdown_list)
+#        return argdown, labels
+#
+#    def _generate_source(
+#        self,
+#        question_text: str = None,
+#        answer_text: str = None,
+#        triples: dict = None,
+#        distractors: list = None,
+#    ):
+#        """generates source text"""
+#        if distractors is None:
+#            distractors = []
+#        statements = list(triples.keys())
+#        statements = self._random.sample(statements, k=len(statements))
+#        reason_order = [s for s in statements if s not in distractors]
+#        statements = [triples.get(s, s) for s in statements]
+#        statements = [s + "." for s in statements]
+#        statements = " ".join(statements)
+#        source = self._templates["source_text"].render(
+#            question_text=question_text.lower(),
+#            answer_text=answer_text.lower().strip("."),
+#            statements=statements,
+#        )
+#        return source, reason_order
+#
+#    @staticmethod
+#    def _generate_reason_statements(
+#        triples: dict = None, reason_order: list = None, labels: dict = None
+#    ):
+#        """
+#        generates reasons
+#        """
+#        reason_s = [{"text": triples[k], "ref_reco": labels[k]} for k in reason_order]
+#        return reason_s
+#
+#    @staticmethod
+#    def _generate_conjectures(
+#        question_text: str = None, answer_text: str = None, labels: dict = None
+#    ):
+#        """
+#        generates conjectures, final conclusion is sole conjectures
+#        all intermediary conclusions are implicit
+#        """
+#        question_text = question_text.split(". ")[-1].lower()
+#        answer_text = answer_text.lower().strip(".")
+#        text = f"{question_text} {answer_text}."
+#        conjectures = [{"text": text, "ref_reco": max(labels.values())}]
+#        return conjectures
+#
+#    @property
+#    def input(self) -> PreprocessedEnBankExample:
+#        return self._input
+#
+#    def set_input(self, batched_input: Dict[str, List]) -> None:
+#        self._input = PreprocessedEnBankExample.from_batch(batched_input)
+#
+#    def configure_product(self) -> None:
+#        # populate product with configs
+#        self._product.append(DeepA2Item())
+#
+#    def produce_da2item(self) -> None:
+#        # we produce a single da2item per input only
+#        record = self._product[0]
+#        record.argument_source = str(self.input.answer_text)
+#        #
+#
+#    def postprocess_da2item(self) -> None:
+#        pass
+#
+#    def add_metadata_da2item(self) -> None:
+#        pass

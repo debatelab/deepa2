@@ -25,7 +25,7 @@ from deepa2.builder.nli_builder import (
     PreprocessedESNLIExample,
 )
 from deepa2.builder.entailmentbank_builder import (
-    EnBankBuilder,
+    EnBankBuilder2,
     EnBankLoader,
     RawEnBankExample,
     PreprocessedEnBankExample,
@@ -41,7 +41,7 @@ app = typer.Typer()
 def bake(  # pylint: disable=too-many-arguments
     source_type: Optional[str] = typer.Option(
         None,
-        help="type of the 🥚 source dataset, used to"
+        help="type of the source dataset, used to"
         "choose a compatible Builder; currently supported source types:"
         "`esnli`, `aifdb`, `enbank`."
     ),
@@ -52,11 +52,11 @@ def bake(  # pylint: disable=too-many-arguments
     ),
     path: Optional[str] = typer.Option(
         None,
-        help="path to the 🥚 input dataset"
+        help="path to the input dataset"
     ),
     export_path: Optional[str] = typer.Option(
         None,
-        help="local directory to which built 🎂 DeepA2 dataset is saved."
+        help="local directory to which built DeepA2 dataset is saved."
     ),
     debug_size: Optional[int] = typer.Option(
         None,
@@ -114,7 +114,7 @@ def bake(  # pylint: disable=too-many-arguments
         director.raw_example_class = RawAIFDBExample
         director.preprocessed_example_class = PreprocessedAIFDBExample
     elif config.get("source_type") == "enbank":
-        builder = EnBankBuilder(**config)
+        builder = EnBankBuilder2(**config)
         dataset_loader = EnBankLoader(**config)
         director.raw_example_class = RawEnBankExample
         director.preprocessed_example_class = PreprocessedEnBankExample
@@ -131,36 +131,36 @@ def bake(  # pylint: disable=too-many-arguments
 def serve(  # pylint: disable=too-many-arguments
     path: Optional[str] = typer.Option(
         None,
-        help="path to 🎂 DeepA2 dataset"
+        help="path to DeepA2 dataset"
     ),
     revision: Optional[str] = typer.Option(
         None,
-        help="version of the 🎂 dataset (script) to load"
+        help="version of the dataset (script) to load"
     ),
     export_path: Optional[str] = typer.Option(
         None,
-        help="local directory to which 🍰 t2t dataset is saved"
+        help="local directory to which t2t dataset is saved"
     ),
     input_column_name: Optional[str] = typer.Option(
         "text",
-        help="name of input column of 🍰 t2t dataset"
+        help="name of input column of t2t dataset"
     ),
     target_column_name: Optional[str] = typer.Option(
         "target",
-        help="name of target column of 🍰 t2t dataset"
+        help="name of target column of t2t dataset"
     ),
     configfile: Optional[str] = typer.Option(
         None,
         help="path to yml configuration while; commandline "
         "options overwrite config file; using a config file "
-        "allows for serving multiple 🎂 deepa2 datasets as a "
-        "single 🍰 t2t dataset; generative modes covered can"
+        "allows for serving multiple deepa2 datasets as a "
+        "single t2t dataset; generative modes covered can"
         "also be specified in config file."
     ),
 ):
     """
-    Prepares 🎂 DeepA2 datasets for text-2-text training, serving a
-    single 🍰 t2t dataset.
+    Prepares 🎂 DeepA2 datasets for text-2-text training, and
+    serves a single 🍰 t2t dataset.
     """
 
     config = {}

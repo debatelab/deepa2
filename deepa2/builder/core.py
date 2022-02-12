@@ -87,6 +87,12 @@ class Builder(ABC):
         rendered as dicts
         """
         product = [dataclasses.asdict(deepa2item) for deepa2item in self._product]
+        # serialize metadata values
+        for record in product:
+            record["metadata"] = [
+                (k, str(v)) for k, v 
+                in record["metadata"]
+            ]
         self._reset()
         return product
 
@@ -324,11 +330,20 @@ class Director:  # pylint: disable=too-many-instance-attributes
         pp_example_fields = [
             field.name for field in dataclasses.fields(self.preprocessed_example_class)
         ]
+        # Infer features from empty DeepA2Item
+        #da2_features: datasets.Features = datasets.Dataset.from_dict(
+        #    {
+        #        k: [v] for k, v in
+        #        dataclasses.asdict(DeepA2Item()).items()
+        #    }
+        #).features
+        # Map
         dataset = dataset.map(
             self.process,
             batched=True,
             batch_size=1,
             remove_columns=pp_example_fields,
+            #features=da2_features,
         )
         logging.info("Created new %s deepa2 dataset: %s", name, dataset)
         logging.debug("Features: %s", dataset["train"].info.features)

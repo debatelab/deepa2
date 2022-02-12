@@ -10,4 +10,11 @@ from deepa2.builder.core import (
     PreprocessedExample,
     RawExample,
 )
+
 from deepa2.builder.utils import DownloadManager
+
+from deepa2.builder.pipeline import (
+    Pipeline,
+    Transformer,
+    PipedBuilder,
+)
