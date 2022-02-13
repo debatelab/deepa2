@@ -11,7 +11,7 @@
 
 This project provides `deepa2`, which
 
-* 🥚 takes NLP data (e.g. NLI, argument mining) as ingredient;
+* 🥚 takes NLP data (e.g. NLI, argument mining) as ingredients;
 * 🎂 bakes DeepA2 datatsets conforming to the [Deep Argument Analysis Framework](https://arxiv.org/abs/2110.01509);
 * 🍰 serves DeepA2 data as text2text datasets suitable for training language models.
 
