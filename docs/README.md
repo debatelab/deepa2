@@ -4,3 +4,4 @@ The following pages outline how the scripts provided by this repository are used
 
 * [e-SNLI](esnli.md)
 * [AIFdb](aifdb.md)
+* [Entailment Bank](enbank.md)
