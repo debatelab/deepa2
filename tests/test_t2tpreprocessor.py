@@ -25,6 +25,8 @@ config_1 = {
     "target_column_name": "target",
 }
 
+# TODO: test config with keys only
+
 
 def test_1():
     """test T2TPreprocessor"""

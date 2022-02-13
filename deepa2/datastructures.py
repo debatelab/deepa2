@@ -152,6 +152,25 @@ class DeepA2Item(
     distractors: List[str] = dataclasses.field(default_factory=lambda: [])
     metadata: List[Tuple[str, Any]] = dataclasses.field(default_factory=lambda: [])
 
+    _DA2_ANGLES_MAP: Dict[str, str] = {  # pylint: disable=invalid-name
+        "s": "source_text",
+        "t": "title",
+        "g": "gist",
+        "h": "source_paraphrase",
+        "x": "context",
+        "a": "argdown_reconstruction",
+        "e": "erroneous_argdown",
+        "r": "reasons",
+        "j": "conjectures",
+        "p": "premises",
+        "i": "intermediary_conclusions",
+        "c": "conclusion",
+        "pf": "premises_formalized",
+        "if": "intermediary_conclusions_formalized",
+        "cf": "conclusion_formalized",
+        "k": "plchd_substitutions",
+    }
+
     @classmethod
     def from_batch(cls, batched_data: Dict[str, List]):
         """Unbatches data and returns a DeepA2Item"""
@@ -172,6 +191,11 @@ class DeepA2Item(
 
         return cls(**unbatched_data)
 
+    @staticmethod
+    def angles() -> Dict[str, str]:
+        """maps keys to field names of DeepA2 Item"""
+        return DeepA2Item._DA2_ANGLES_MAP
+
 
 @dataclasses.dataclass
 class GenerativeMode:
@@ -181,3 +205,39 @@ class GenerativeMode:
     target: str
     input: List[str]
     weight: float = 1.0
+
+    @staticmethod
+    def from_keys(name: str):
+        """
+        Tries to create GenerativeMode from keys formula `name`
+        of the form
+
+          `a+b+... => o`
+        """
+
+        if " => " not in name:
+            return None
+
+        input_str, target = (name.split(" => ")[:2])
+
+        if "+" in input_str:
+            input_list = input_str.split("+")
+            input_list = [s.split() for s in input_list]
+        else:
+            input_list = input_str.strip()
+
+        target = target.strip()
+
+        if (
+            target not in DeepA2Item.angles()
+            or any(key not in DeepA2Item.angles() for key in input_list)
+        ):
+            return None
+
+        mode = GenerativeMode(
+            name=name,
+            input=[DeepA2Item.angles()[key] for key in input_list],
+            target=DeepA2Item.angles()[target],
+        )
+
+        return mode
