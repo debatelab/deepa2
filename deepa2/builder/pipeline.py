@@ -47,7 +47,7 @@ class Transformer(ABC):  # pylint: disable=too-few-public-methods
         """transforms tuple of DeepA2Item and PreprocessedExample"""
 
 
-class Pipeline:
+class Pipeline:  # pylint: disable=too-few-public-methods
     """pipeline for executing transformer-chain"""
 
     def __init__(self, transformer_chain: List[Transformer]) -> None:

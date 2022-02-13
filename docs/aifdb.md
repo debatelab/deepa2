@@ -79,7 +79,7 @@ From each preprocessed AIFdb example, we build a single DeepA2 item. It's straig
 
 ### Features
 
-- [x] `argument_source`
+- [x] `source_text`
 - [ ] `title`
 - [ ] `gist`
 - [x] `source_paraphrase`

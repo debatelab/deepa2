@@ -105,7 +105,7 @@ Thirdly, we construct lists of reasons and conjectures, which identify explicitl
 
 ### Features
 
-- [x] `argument_source`
+- [x] `source_text`
 - [ ] `title`
 - [x] `gist`
 - [x] `source_paraphrase`

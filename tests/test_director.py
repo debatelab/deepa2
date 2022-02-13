@@ -83,7 +83,7 @@ class DummyBuilder(Builder):
 
     def produce_da2item(self) -> None:
         record = self._product[0]  # we produce a single da2item per input only
-        record.argument_source = str(self.input.text)
+        record.source_text = str(self.input.text)
         record.argdown_reconstruction = (
             f"{self.input.premise}\n----\n{self.input.conclusion}"
         )
@@ -115,8 +115,8 @@ def test_pipeline(tmp_path):
 
     da2_train_split = da2_train_split.to_dict()
 
-    text_check = da2_train_split["argument_source"] == RAW_EXAMPLES["text"]
-    print(da2_train_split["argument_source"])
+    text_check = da2_train_split["source_text"] == RAW_EXAMPLES["text"]
+    print(da2_train_split["source_text"])
 
     argdown_check = da2_train_split["argdown_reconstruction"] == [
         "premise\n----\nconclusion",

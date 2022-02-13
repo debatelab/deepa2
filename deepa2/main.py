@@ -38,36 +38,31 @@ app = typer.Typer()
 
 
 @app.command()
-def bake(  # pylint: disable=too-many-arguments
+def bake(  # pylint: disable=too-many-arguments,too-many-branches # noqa: C901
     source_type: Optional[str] = typer.Option(
         None,
         help="type of the source dataset, used to"
         "choose a compatible Builder; currently supported source types:"
-        "`esnli`, `aifdb`, `enbank`."
+        "`esnli`, `aifdb`, `enbank`.",
     ),
     name: Optional[str] = typer.Option(
         None,
         help="name of preconfigured dataset(s) to load given `source_type`; "
-        "see documentation of Builders for more info."
+        "see documentation of Builders for more info.",
     ),
-    path: Optional[str] = typer.Option(
-        None,
-        help="path to the input dataset"
-    ),
+    path: Optional[str] = typer.Option(None, help="path to the input dataset"),
     export_path: Optional[str] = typer.Option(
-        None,
-        help="local directory to which built DeepA2 dataset is saved."
+        None, help="local directory to which built DeepA2 dataset is saved."
     ),
     debug_size: Optional[int] = typer.Option(
-        None,
-        help="number of items to process for debugging"
+        None, help="number of items to process for debugging"
     ),
     configfile: Optional[str] = typer.Option(
         None,
         help="path to yml file that contains a configuration "
         "for `deepa2 bake`. The configfile will typically set "
         "builder-specific parameters, see documentation of Builders "
-        "for more info."
+        "for more info.",
     ),
 ):
     """
@@ -129,25 +124,18 @@ def bake(  # pylint: disable=too-many-arguments
 
 @app.command()
 def serve(  # pylint: disable=too-many-arguments
-    path: Optional[str] = typer.Option(
-        None,
-        help="path to DeepA2 dataset"
-    ),
+    path: Optional[str] = typer.Option(None, help="path to DeepA2 dataset"),
     revision: Optional[str] = typer.Option(
-        None,
-        help="version of the dataset (script) to load"
+        None, help="version of the dataset (script) to load"
     ),
     export_path: Optional[str] = typer.Option(
-        None,
-        help="local directory to which t2t dataset is saved"
+        None, help="local directory to which t2t dataset is saved"
     ),
     input_column_name: Optional[str] = typer.Option(
-        "text",
-        help="name of input column of t2t dataset"
+        "text", help="name of input column of t2t dataset"
     ),
     target_column_name: Optional[str] = typer.Option(
-        "target",
-        help="name of target column of t2t dataset"
+        "target", help="name of target column of t2t dataset"
     ),
     configfile: Optional[str] = typer.Option(
         None,
@@ -155,7 +143,7 @@ def serve(  # pylint: disable=too-many-arguments
         "options overwrite config file; using a config file "
         "allows for serving multiple deepa2 datasets as a "
         "single t2t dataset; generative modes covered can"
-        "also be specified in config file."
+        "also be specified in config file.",
     ),
 ):
     """

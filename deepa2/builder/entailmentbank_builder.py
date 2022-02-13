@@ -10,7 +10,8 @@ from typing import List, Dict, Union, Any
 import zipfile
 
 import datasets
-#import jinja2
+
+# import jinja2
 import pandas as pd
 from tqdm import tqdm  # type: ignore
 
@@ -30,7 +31,7 @@ from deepa2.builder import (
     Transformer,
 )
 from deepa2.config import (
-    #template_dir,
+    # template_dir,
     data_dir,
 )
 
@@ -38,7 +39,7 @@ tqdm.pandas()
 
 
 @dataclasses.dataclass
-class RawEnBankExample(RawExample):
+class RawEnBankExample(RawExample):  # pylint: disable=too-many-instance-attributes
     """
     Datatype describing a raw, unprocessed example
     in a entailment bank dataset, possibly batched.
@@ -57,7 +58,9 @@ class RawEnBankExample(RawExample):
 
 
 @dataclasses.dataclass
-class PreprocessedEnBankExample(PreprocessedExample):
+class PreprocessedEnBankExample(
+    PreprocessedExample
+):  # pylint: disable=too-many-instance-attributes
     """
     Datatype describing a preprocessed entailment bank
     example.
@@ -69,6 +72,7 @@ class PreprocessedEnBankExample(PreprocessedExample):
     intermediate_conclusions: Dict[str, str]
     question_text: str
     answer_text: str
+    hypothesis: str
     distractors: List[str]
 
 
@@ -201,7 +205,7 @@ class AddArgdown(Transformer):
         """
         generates argdown and labels dict
         """
-        
+
         labels: Dict[str, int] = {}
         argdown_list: List[str] = []
         if step_proof is None:
@@ -239,7 +243,7 @@ class AddSourceText(Transformer):
 
     _TEMPLATE_STRINGS = {
         "source_text": (
-            '{{ question_text }} {{ answer_text }}. '
+            "{{ question_text }} {{ answer_text }}. "
             'that is because {{ statements | join(" ") }}'
         ),
     }
@@ -284,11 +288,11 @@ class AddSourceText(Transformer):
     def transform(  # type: ignore[override]
         self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
     ) -> DeepA2Item:
-        #print("da2_item: %s" % da2_item)
-        #print("prep_example: %s" % prep_example)
+        # print("da2_item: %s" % da2_item)
+        # print("prep_example: %s" % prep_example)
 
         source, reason_order = self._generate_source(**dataclasses.asdict(prep_example))
-        da2_item.argument_source = source
+        da2_item.source_text = source
         da2_item.metadata.append(("reason_order", reason_order))
         return da2_item
 
@@ -299,8 +303,8 @@ class AddReasons(Transformer):
     def transform(  # type: ignore[override]
         self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
     ) -> DeepA2Item:
-        #print("da2_item: %s" % da2_item)
-        #print("prep_example: %s" % prep_example)
+        # print("da2_item: %s" % da2_item)
+        # print("prep_example: %s" % prep_example)
         reasons = [
             QuotedStatement(
                 text=prep_example.triples[k],
@@ -344,11 +348,34 @@ class AddPremisesConclusion(Transformer):
         conclusion_text = conclusion_text.strip(".") + "."
         conclusion = [
             ArgdownStatement(
-                text=conclusion_text, ref_reco=max(dict(da2_item.metadata)["labels"].values())
+                text=conclusion_text,
+                ref_reco=max(dict(da2_item.metadata)["labels"].values()),
             )
         ]
         da2_item.premises = premises
         da2_item.conclusion = conclusion
+        return da2_item
+
+
+class AddParaphrase(Transformer):
+    """adds source paraphrase, gist, and other fields"""
+
+    _TEMPLATE_STRINGS = {
+        "paraphrase": '{{ reasons | join(" ") }} Therefores: {{ answer_text }}.',
+    }
+
+    def transform(  # type: ignore[override]
+        self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
+    ) -> DeepA2Item:
+        reasons = [reason.text for reason in da2_item.reasons]
+        paraphrase = self.templates["paraphrase"].render(
+            reasons=reasons, answer_text=prep_example.answer_text
+        )
+
+        da2_item.source_paraphrase = paraphrase
+        da2_item.gist = prep_example.hypothesis
+        da2_item.context = prep_example.question_text
+
         return da2_item
 
 
@@ -358,11 +385,7 @@ class RemoveMetaDicts(Transformer):
     def transform(  # type: ignore[override]
         self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
     ) -> DeepA2Item:
-        metadata = [
-            (k, str(v))
-            for k, v
-            in da2_item.metadata
-        ]
+        metadata = [(k, str(v)) for k, v in da2_item.metadata]
         da2_item.metadata = metadata
         return da2_item
 
@@ -398,6 +421,7 @@ class EnBankBuilder2(PipedBuilder):
                 AddReasons(self),
                 AddConjectures(self),
                 AddPremisesConclusion(self),
+                AddParaphrase(self),
             ]
         )
         return pipeline
@@ -405,17 +429,12 @@ class EnBankBuilder2(PipedBuilder):
     def set_input(self, batched_input: Dict[str, List]) -> None:
         prep_example = PreprocessedEnBankExample.from_batch(batched_input)
         # strip dicts of None values
-        prep_example.triples = {
-            k: v for k, v 
-            in prep_example.triples.items()
-            if v
-        }
+        prep_example.triples = {k: v for k, v in prep_example.triples.items() if v}
         prep_example.intermediate_conclusions = {
-            k: v for k, v 
-            in prep_example.intermediate_conclusions.items()
-            if v
+            k: v for k, v in prep_example.intermediate_conclusions.items() if v
         }
         self._input = prep_example
+
 
 class EnBankBuilder(Builder):
     """
@@ -602,7 +621,7 @@ class EnBankBuilder(Builder):
 #    def produce_da2item(self) -> None:
 #        # we produce a single da2item per input only
 #        record = self._product[0]
-#        record.argument_source = str(self.input.answer_text)
+#        record.source_text = str(self.input.answer_text)
 #        #
 #
 #    def postprocess_da2item(self) -> None:

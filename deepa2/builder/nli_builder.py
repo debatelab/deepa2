@@ -463,17 +463,17 @@ class ESNLIBuilder(Builder):
         # Step 4: source text, reasons, conjectures
 
         # 4.a) compile list with all sentences in source text
-        argument_source_list = []
+        source_text_list = []
         # add distractors
         for i, sentence in enumerate(data["distractors"]):
             if dict(record.metadata)["distractor_mask"][i]:
-                argument_source_list.append(["distractor", sentence])
+                source_text_list.append(["distractor", sentence])
         # add reasons
         argument_list2 = argument_list.copy()
         argument_list2[1] = data["premise_cond"]  # replace conditional
         for i, sentence in enumerate(argument_list2[:-1]):
             if dict(record.metadata)["argument_mask"][i]:
-                argument_source_list.append(
+                source_text_list.append(
                     [
                         "reason",
                         QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=-1),
@@ -483,35 +483,35 @@ class ESNLIBuilder(Builder):
         i = 2
         if dict(record.metadata)["argument_mask"][i]:
             sentence = argument_list2[i]
-            argument_source_list.append(
+            source_text_list.append(
                 [
                     "conjecture",
                     QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=-1),
                 ]
             )
         # shuffle
-        random.shuffle(argument_source_list)
+        random.shuffle(source_text_list)
 
         # 4.b) walk through list and compile source text as well as reason, conclusions, distractors
-        record.argument_source = ""
+        record.source_text = ""
         record.reasons = []
         record.conjectures = []
         record.distractors = []
-        for item in argument_source_list:
-            pointer = len(record.argument_source)
+        for item in source_text_list:
+            pointer = len(record.source_text)
             if item[0] == "distractor":
-                record.argument_source += item[1]
+                record.source_text += item[1]
                 record.distractors.append(item[1])
             elif item[0] in ["reason", "conjecture"]:
-                record.argument_source += item[1].text
+                record.source_text += item[1].text
                 item[1].starts_at = pointer
                 if item[0] == "reason":
                     record.reasons.append(item[1])
                 else:
                     record.conjectures.append(item[1])
-            record.argument_source += " "
+            record.source_text += " "
 
-        record.argument_source = record.argument_source.strip(" ")
+        record.source_text = record.source_text.strip(" ")
 
         # Step 5: gist, source_paraphrase, context, title
         # use premise2 as gist
