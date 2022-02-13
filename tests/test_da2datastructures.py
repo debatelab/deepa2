@@ -10,14 +10,14 @@ from deepa2 import (
 
 def test_from_batch():
     """test from batch"""
-    argument_source = "argument_source-123"
+    source_text = "source_text-123"
     reasons = [
         QuotedStatement(text="reasons-123", ref_reco=1),
         QuotedStatement(text="reasons-123", ref_reco=2),
     ]
     conjectures = [QuotedStatement(text="conjectures-123", ref_reco=3)]
     da2_item = DeepA2Item(
-        argument_source=argument_source, reasons=reasons, conjectures=conjectures
+        source_text=source_text, reasons=reasons, conjectures=conjectures
     )
     print(dataclasses.fields(da2_item))
 

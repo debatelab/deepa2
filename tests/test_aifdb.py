@@ -400,7 +400,7 @@ def fixture_processed_examples():
 def test_aifdb_source(processed_examples):
     """test processed da2items"""
     for da2item in processed_examples:
-        assert da2item["argument_source"] == RAW_EXAMPLES_1[0].text
+        assert da2item["source_text"] == RAW_EXAMPLES_1[0].text
 
 
 def test_aifdb_reasons(processed_examples):

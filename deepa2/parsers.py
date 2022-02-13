@@ -2,7 +2,7 @@
 
 import dataclasses
 import logging
-from typing import Any, List, Dict, Optional
+from typing import Any, List, Dict, Tuple, Optional
 
 import jinja2
 
@@ -49,8 +49,8 @@ class DeepA2Layouter:  # pylint: disable=too-few-public-methods
         if field.type == List[str]:
             return self._format_list(data)
 
-        if field.type == Dict[str, str]:
-            return self._format_dict(data)
+        if field.type == List[Tuple[str, str]]:
+            return self._format_dict(dict(data))
 
         if field.type in [
             List[QuotedStatement],

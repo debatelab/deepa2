@@ -349,13 +349,13 @@ class ESNLIBuilder(Builder):
                     config = self.CONFIGURATIONS[label][
                         i % len(self.CONFIGURATIONS[label])
                     ]
-                    metadata = {
-                        "id": str(uuid.uuid4()),
-                        "config": config,
-                        "argument_mask": argument_mask,
-                        "distractor_mask": distractor_mask,
-                        "label": label,
-                    }
+                    metadata = [
+                        ("id", str(uuid.uuid4())),
+                        ("config", config),
+                        ("argument_mask", argument_mask),
+                        ("distractor_mask", distractor_mask),
+                        ("label", label),
+                    ]
                     deepa2record = DeepA2Item(metadata=metadata)
                     self._product.append(deepa2record)
                     i += 1
@@ -367,7 +367,7 @@ class ESNLIBuilder(Builder):
     def _map_data_to_roles(self, record: DeepA2Item, idx: int = 0) -> Dict:
         """initializes population of record"""
         data = {}
-        if record.metadata["label"] == "entailment":
+        if dict(record.metadata)["label"] == "entailment":
             data = {
                 "premise": self.input.premise,
                 "hypothesis": self.input.hypothesis_ent,
@@ -400,7 +400,7 @@ class ESNLIBuilder(Builder):
         """populates record at product index `int`"""
 
         record = self._product[idx]
-        config = record.metadata["config"]
+        config = dict(record.metadata)["config"]
 
         # Initialize: mapping input data to argumentative roles
         data = self._map_data_to_roles(record=record, idx=idx)
@@ -431,14 +431,14 @@ class ESNLIBuilder(Builder):
         # premises
         record.premises = []
         for i in range(2):
-            explicit = bool(record.metadata["argument_mask"][i])
+            explicit = bool(dict(record.metadata)["argument_mask"][i])
             argdown_statement = ArgdownStatement(
                 text=argument_list[i], explicit=explicit, ref_reco=i + 1
             )
             record.premises.append(argdown_statement)
         # conclusion
         i = 2
-        explicit = bool(record.metadata["argument_mask"][i])
+        explicit = bool(dict(record.metadata)["argument_mask"][i])
         argdown_statement = ArgdownStatement(
             text=argument_list[i], explicit=explicit, ref_reco=i + 1
         )
@@ -456,24 +456,24 @@ class ESNLIBuilder(Builder):
         record.conclusion_formalized = [formalization]
         # placeholders
         record.misc_placeholders = [k for k, _ in config.placeholders.items()]
-        record.plchd_substitutions = {
-            k: v.format(**data) for k, v in config.placeholders.items()
-        }
+        record.plchd_substitutions = [
+            (k, v.format(**data)) for k, v in config.placeholders.items()
+        ]
 
         # Step 4: source text, reasons, conjectures
 
         # 4.a) compile list with all sentences in source text
-        argument_source_list = []
+        source_text_list = []
         # add distractors
         for i, sentence in enumerate(data["distractors"]):
-            if record.metadata["distractor_mask"][i]:
-                argument_source_list.append(["distractor", sentence])
+            if dict(record.metadata)["distractor_mask"][i]:
+                source_text_list.append(["distractor", sentence])
         # add reasons
         argument_list2 = argument_list.copy()
         argument_list2[1] = data["premise_cond"]  # replace conditional
         for i, sentence in enumerate(argument_list2[:-1]):
-            if record.metadata["argument_mask"][i]:
-                argument_source_list.append(
+            if dict(record.metadata)["argument_mask"][i]:
+                source_text_list.append(
                     [
                         "reason",
                         QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=-1),
@@ -481,37 +481,37 @@ class ESNLIBuilder(Builder):
                 )
         # add conclusion
         i = 2
-        if record.metadata["argument_mask"][i]:
+        if dict(record.metadata)["argument_mask"][i]:
             sentence = argument_list2[i]
-            argument_source_list.append(
+            source_text_list.append(
                 [
                     "conjecture",
                     QuotedStatement(text=sentence, ref_reco=i + 1, starts_at=-1),
                 ]
             )
         # shuffle
-        random.shuffle(argument_source_list)
+        random.shuffle(source_text_list)
 
         # 4.b) walk through list and compile source text as well as reason, conclusions, distractors
-        record.argument_source = ""
+        record.source_text = ""
         record.reasons = []
         record.conjectures = []
         record.distractors = []
-        for item in argument_source_list:
-            pointer = len(record.argument_source)
+        for item in source_text_list:
+            pointer = len(record.source_text)
             if item[0] == "distractor":
-                record.argument_source += item[1]
+                record.source_text += item[1]
                 record.distractors.append(item[1])
             elif item[0] in ["reason", "conjecture"]:
-                record.argument_source += item[1].text
+                record.source_text += item[1].text
                 item[1].starts_at = pointer
                 if item[0] == "reason":
                     record.reasons.append(item[1])
                 else:
                     record.conjectures.append(item[1])
-            record.argument_source += " "
+            record.source_text += " "
 
-        record.argument_source = record.argument_source.strip(" ")
+        record.source_text = record.source_text.strip(" ")
 
         # Step 5: gist, source_paraphrase, context, title
         # use premise2 as gist

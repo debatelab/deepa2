@@ -403,17 +403,17 @@ class AIFDBBuilder(Builder):
             if itype == "RA"
             else self._aifdb_config.templates_sp_ca
         )
-        metadata = {
-            "corpus": self.input.corpus,
-            "type": itype,
-            "config": {"sp_template": sp_template},
-        }
+        metadata = [
+            ("corpus", self.input.corpus),
+            ("type", itype),
+            ("config", {"sp_template": sp_template}),
+        ]
         self._product.append(DeepA2Item(metadata=metadata))
 
     def produce_da2item(self) -> None:
         # we produce a single da2item per input only
         record = self._product[0]
-        record.argument_source = str(self.input.text)
+        record.source_text = str(self.input.text)
         if self.input.reasons:
             record.reasons = [
                 QuotedStatement(text=r, starts_at=-1, ref_reco=e + 1)
@@ -426,7 +426,9 @@ class AIFDBBuilder(Builder):
                 for j in self.input.conjectures
             ]
         # source paraphrase
-        sp_template = self._env.get_template(record.metadata["config"]["sp_template"])
+        sp_template = self._env.get_template(
+            dict(record.metadata)["config"]["sp_template"]
+        )
         record.source_paraphrase = sp_template.render(
             premises=self.input.premises, conclusion=self.input.conclusions
         )

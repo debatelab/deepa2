@@ -76,25 +76,25 @@ class DummyBuilder(Builder):
         self._input = DummyPreprocessedExample.from_batch(batched_input)
 
     def configure_product(self) -> None:
-        metadata = {
-            "configured": True,
-        }
+        metadata = [
+            ("configured", True),
+        ]
         self._product.append(DeepA2Item(metadata=metadata))
 
     def produce_da2item(self) -> None:
         record = self._product[0]  # we produce a single da2item per input only
-        record.argument_source = str(self.input.text)
+        record.source_text = str(self.input.text)
         record.argdown_reconstruction = (
             f"{self.input.premise}\n----\n{self.input.conclusion}"
         )
 
     def postprocess_da2item(self) -> None:
         record = self._product[0]  # we produce a single da2item per input only
-        record.metadata["postprocessed"] = True
+        record.metadata.append(("postprocessed", True))
 
     def add_metadata_da2item(self) -> None:
         record = self._product[0]  # we produce a single da2item per input only
-        record.metadata["metadata_added"] = True
+        record.metadata.append(("metadata_added", True))
 
 
 def test_pipeline(tmp_path):
@@ -115,8 +115,8 @@ def test_pipeline(tmp_path):
 
     da2_train_split = da2_train_split.to_dict()
 
-    text_check = da2_train_split["argument_source"] == RAW_EXAMPLES["text"]
-    print(da2_train_split["argument_source"])
+    text_check = da2_train_split["source_text"] == RAW_EXAMPLES["text"]
+    print(da2_train_split["source_text"])
 
     argdown_check = da2_train_split["argdown_reconstruction"] == [
         "premise\n----\nconclusion",
@@ -124,11 +124,13 @@ def test_pipeline(tmp_path):
     ]
     print(da2_train_split["argdown_reconstruction"])
 
-    metadata_check = da2_train_split["metadata"][0] == {
-        "configured": True,
-        "postprocessed": True,
-        "metadata_added": True,
-    }
+    print(da2_train_split["metadata"][0])
+
+    metadata_check = da2_train_split["metadata"][0] == [
+        ["configured", "True"],
+        ["postprocessed", "True"],
+        ["metadata_added", "True"],
+    ]
     print(da2_train_split["metadata"])
 
     assert text_check and argdown_check and metadata_check

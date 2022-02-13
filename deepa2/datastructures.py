@@ -3,7 +3,7 @@
 from abc import ABC
 import dataclasses
 import logging
-from typing import Any, List, Dict
+from typing import Any, List, Dict, Tuple
 
 import datasets
 
@@ -24,15 +24,19 @@ class BaseExample(ABC):
         example_fields = [field.name for field in dataclasses.fields(cls)]
         fields_without_meta = [name for name in example_fields if name != "metadata"]
         for _, split in dataset.items():
-            if split.column_names not in (example_fields, fields_without_meta):
+            if set(split.column_names) not in (
+                set(example_fields),
+                set(fields_without_meta),
+            ):
                 logging.error(
-                    "Features of dataset with raw examples (%s) "
-                    "don't match raw_example_class (%s).",
+                    "Features of dataset with examples (%s) "
+                    "don't match example_class %s (%s).",
                     dataset.column_names,
+                    cls,
                     example_fields,
                 )
                 raise ValueError(
-                    "Features of dataset with raw examples don't match raw_example_class."
+                    "Features of dataset with examples don't match example_class."
                 )
 
 
@@ -75,7 +79,7 @@ class DeepA2Item(
     Dataclass defining the structure of a DeepA2 example.
 
     Attributes:
-        argument_source: source text that informally presents the reconstructed argument
+        source_text: source text that informally presents the reconstructed argument
         title: telling title of the reconstructed argument
         gist: very succinct summary of the argument, main point of the argument
         source_paraphrase: a maximally clear, though conservative summary of the argument
@@ -87,8 +91,8 @@ class DeepA2Item(
             neighbourhood
         argdown_reconstruction: argdown snippet with reconstruction of the argument
         erroneous_argdown: a flawed reconstruction, similar to the correct one
-        reasons: a list of reason statements (verbatim quotes from `argument_source`)
-        conjectures: a list of conjectures (verbatim quotes from `argument_source`)
+        reasons: a list of reason statements (verbatim quotes from `source_text`)
+        conjectures: a list of conjectures (verbatim quotes from `source_text`)
         premises: the premises of `argdown_reconstruction`
         intermediary_conclusions: the intermediary conclusions of `argdown_reconstruction`
         conclusion: the conclusion of `argdown_reconstruction`
@@ -104,7 +108,7 @@ class DeepA2Item(
 
     """
 
-    argument_source: str = ""
+    source_text: str = ""
 
     title: str = ""
     gist: str = ""
@@ -141,12 +145,12 @@ class DeepA2Item(
     predicate_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
     entity_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
     misc_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
-    plchd_substitutions: Dict[str, str] = dataclasses.field(
-        default_factory=lambda: {"": ""}
+    plchd_substitutions: List[Tuple[str, str]] = dataclasses.field(
+        default_factory=lambda: []
     )
 
     distractors: List[str] = dataclasses.field(default_factory=lambda: [])
-    metadata: Dict = dataclasses.field(default_factory=lambda: {"": ""})
+    metadata: List[Tuple[str, Any]] = dataclasses.field(default_factory=lambda: [])
 
     @classmethod
     def from_batch(cls, batched_data: Dict[str, List]):

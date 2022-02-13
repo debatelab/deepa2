@@ -89,6 +89,6 @@ def test_plcd(layouter):
 
 def test_subst(layouter):
     """test layouter"""
-    plchd_substitutions = {"p": "sen_p", "F": "pred_F"}
+    plchd_substitutions = [("p", "sen_p"), ("F", "pred_F")]
     da2item = layouter.format(DeepA2Item(plchd_substitutions=plchd_substitutions))
     assert da2item["plchd_substitutions"] == "p : sen_p | F : pred_F"
