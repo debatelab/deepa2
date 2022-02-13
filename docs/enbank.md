@@ -64,7 +64,7 @@ CC BY 4.0
 
 Preprocessing expands meta-data and drops all columns not specified above. 
 
-## DeepA2-ESNLI
+## DeepA2-ENBANK
 
 ### Construction
 
