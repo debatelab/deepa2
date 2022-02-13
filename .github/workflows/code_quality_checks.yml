@@ -4,6 +4,9 @@ name: code quality
 on:
   push:
     branches: [main, development]
+  pull_request:
+    branches:
+        - master  
 
 jobs:
   build:
