@@ -9,28 +9,27 @@ The following pages outline how the scripts provided by this repository are used
 ## Usage options for `deepa2 bake`
 
 ```
-% deepa2 bake --help
-Usage: deepa2 bake [OPTIONS]
+% deepa2 serve --help
+Usage: deepa2 serve [OPTIONS]
 
-  Builds a new 🎂 DeepA2 dataset from `path` using a Builder that fits
-  `source_type`.
+  Prepares 🎂 DeepA2 datasets for text-2-text training, and serves a single 🍰
+  t2t dataset.
 
 Options:
-  --source-type TEXT    type of the source dataset, used tochoose a compatible
-                        Builder; currently supported source types:`esnli`,
-                        `aifdb`, `enbank`.
-  --name TEXT           name of preconfigured dataset(s) to load given
-                        `source_type`; see documentation of Builders for more
-                        info.
-  --path TEXT           path to the input dataset
-  --export-path TEXT    local directory to which built DeepA2 dataset is
-                        saved.
-  --debug-size INTEGER  number of items to process for debugging
-  --configfile TEXT     path to yml file that contains a configuration for
-                        `deepa2 bake`. The configfile will typically set
-                        builder-specific parameters, see documentation of
-                        Builders for more info.
-  --help                Show this message and exit.
+  --path TEXT                path to DeepA2 dataset
+  --revision TEXT            version of the dataset (script) to load
+  --export-path TEXT         local directory to which t2t dataset is saved
+  --input-column-name TEXT   name of input column of t2t dataset  [default:
+                             text]
+  --target-column-name TEXT  name of target column of t2t dataset  [default:
+                             target]
+  --configfile TEXT          path to yml configuration while; commandline
+                             options overwrite config file; using a config
+                             file allows for serving multiple deepa2 datasets
+                             as a single t2t dataset; generative modes covered
+                             canalso be specified in config file.
+  --help                     Show this message and exit.
+
 ```
 
 
@@ -51,4 +50,27 @@ generative_modes:       # list of modes used to construct t2t items
     -   "reasons"
     weight: 1           # controls frequency of mode in t2t dataset
 -   name: "s => c"      # mode will be inferred from keys in name
+```
+
+Keys for specifying generative modes:
+
+```bash
+% deepa2 keys
+{'a': 'argdown_reconstruction',
+ 'c': 'conclusion',
+ 'e': 'erroneous_argdown',
+ 'fc': 'conclusion_formalized',
+ 'fi': 'intermediary_conclusions_formalized',
+ 'fp': 'premises_formalized',
+ 'g': 'gist',
+ 'h': 'source_paraphrase',
+ 'i': 'intermediary_conclusions',
+ 'j': 'conjectures',
+ 'k': 'plchd_substitutions',
+ 'p': 'premises',
+ 'r': 'reasons',
+ 's': 'source_text',
+ 't': 'title',
+ 'x': 'context'}
+
 ```
