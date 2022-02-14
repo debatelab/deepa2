@@ -6,7 +6,7 @@ The following pages outline how the scripts provided by this repository are used
 * [AIFdb](aifdb.md)
 * [Entailment Bank](enbank.md)
 
-## Usage options for `deepa2 bake`
+## Usage options for `deepa2 serve`
 
 ```
 % deepa2 serve --help
@@ -73,4 +73,28 @@ Keys for specifying generative modes:
  't': 'title',
  'x': 'context'}
 
+```
+
+
+## Extensions of the Original Framework
+
+We're continously extending teh original `deepa2` framework and have, so far, added the following additional features (dataset dimensions):
+
+```yml
+erroneous_argdown:  # flawed reconstruction, e.g.
+  "(1) God exists.
+   ----
+   (2) God exists."
+gist:               # the argument's main point, e.g.
+  "Being perfect entails real existence."
+source_paraphrase:  # a maximally clear re-rendition of source_text
+  "God is a being than which no greater can be conceived. If such a 
+  being fails to exist, then a greater being — namely, a being than 
+  which no greater can be conceived, and which exists — can be 
+  conceived. But this would be absurd: nothing can be greater than 
+  a being than which no greater can be conceived. So God exists."
+title:              # a telling title of the argument, e.g.
+  "The ontological argument"
+context:             # the context, e.g.
+  "St. Anselm's Proslogion"
 ```
