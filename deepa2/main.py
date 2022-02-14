@@ -1,13 +1,16 @@
 """DeepA2 main app"""
 
+import dataclasses
 import logging
 import pathlib
+import pprint
 import sys
 from typing import Optional
 
 import typer
 import yaml
 
+import deepa2
 from deepa2.builder import (
     Builder,
     Director,
@@ -177,3 +180,14 @@ def serve(  # pylint: disable=too-many-arguments
 
     t2t_preprocessor = T2TPreprocessor(**config)
     t2t_preprocessor.transform()
+
+
+@app.command()
+def keys():
+    """prints keys for specifying generative modes, and corresponding features."""
+
+    typer.echo(
+        pprint.pformat(
+            dataclasses.asdict(deepa2.DA2_ANGLES_MAP())
+        )
+    )
