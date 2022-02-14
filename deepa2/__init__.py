@@ -9,6 +9,7 @@ from deepa2.datastructures import (
     ArgdownStatement,
     Formalization,
     GenerativeMode,
+    DA2_ANGLES_MAP,
 )
 
 from deepa2.parsers import (

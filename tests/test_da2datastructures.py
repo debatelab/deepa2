@@ -5,6 +5,7 @@ import dataclasses
 from deepa2 import (
     DeepA2Item,
     QuotedStatement,
+    DA2_ANGLES_MAP,
 )
 
 
@@ -30,3 +31,12 @@ def test_from_batch():
     print(da2_item2)
 
     assert da2_item2 == da2_item
+
+
+def test_keys_to_features():
+    """features in angle map exist"""
+    da2_features = [field.name for field in dataclasses.fields(DeepA2Item())]
+    print(da2_features)
+    assert all(
+        (v in da2_features) for _, v in dataclasses.asdict(DA2_ANGLES_MAP()).items()
+    )
