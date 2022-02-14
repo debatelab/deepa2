@@ -186,8 +186,4 @@ def serve(  # pylint: disable=too-many-arguments
 def keys():
     """prints keys for specifying generative modes, and corresponding features."""
 
-    typer.echo(
-        pprint.pformat(
-            dataclasses.asdict(deepa2.DA2_ANGLES_MAP())
-        )
-    )
+    typer.echo(pprint.pformat(dataclasses.asdict(deepa2.DA2_ANGLES_MAP())))
