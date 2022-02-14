@@ -25,7 +25,7 @@ from deepa2.builder.nli_builder import (
     PreprocessedESNLIExample,
 )
 from deepa2.builder.entailmentbank_builder import (
-    EnBankBuilder2,
+    EnBankBuilder,
     EnBankLoader,
     RawEnBankExample,
     PreprocessedEnBankExample,
@@ -109,7 +109,7 @@ def bake(  # pylint: disable=too-many-arguments,too-many-branches # noqa: C901
         director.raw_example_class = RawAIFDBExample
         director.preprocessed_example_class = PreprocessedAIFDBExample
     elif config.get("source_type") == "enbank":
-        builder = EnBankBuilder2(**config)
+        builder = EnBankBuilder(**config)
         dataset_loader = EnBankLoader(**config)
         director.raw_example_class = RawEnBankExample
         director.preprocessed_example_class = PreprocessedEnBankExample

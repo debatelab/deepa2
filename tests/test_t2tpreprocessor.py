@@ -15,10 +15,22 @@ config_1 = {
     "export_path": ".",
     "generative_modes": [
         {
-            "name": "a+r => j",
+            "name": "not-used-to-infer-inputs-and-target",
             "target": "conjectures",
             "input": ["source_text", "reasons"],
             "weight": 1,
+        }
+    ],
+    "input_column_name": "text",
+    "target_column_name": "target",
+}
+
+config_2 = {  # same as config_1, mode inferred from name
+    "sources": [{"path": "."}],
+    "export_path": ".",
+    "generative_modes": [
+        {
+            "name": "s+r => j",
         }
     ],
     "input_column_name": "text",
@@ -49,3 +61,17 @@ def test_1():
         t2t_item["text"][0] == "conjectures: source_text: source_text-1234 "
         "reasons: reasons-1234 (ref: (1)) | reasons-1234 (ref: (2))"
     )
+
+
+def test_infer_keys_from_name():
+    """input / output correctly infered from keys"""
+    modes_1 = T2TPreprocessor(  # pylint: disable=protected-access
+        **config_1
+    )._generative_modes
+    modes_2 = T2TPreprocessor(  # pylint: disable=protected-access
+        **config_2
+    )._generative_modes
+
+    assert modes_1[0].input == modes_2[0].input
+
+    assert modes_1[0].target == modes_2[0].target

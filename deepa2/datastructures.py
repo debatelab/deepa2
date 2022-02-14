@@ -9,6 +9,28 @@ import datasets
 
 
 @dataclasses.dataclass
+class DA2_ANGLES_MAP:  # pylint: disable=invalid-name,too-many-instance-attributes
+    """maps key to DA2 features (`DeepA2Item`)"""
+
+    s: str = "source_text"
+    t: str = "title"
+    g: str = "gist"
+    h: str = "source_paraphrase"
+    x: str = "context"
+    a: str = "argdown_reconstruction"
+    e: str = "erroneous_argdown"
+    r: str = "reasons"
+    j: str = "conjectures"
+    p: str = "premises"
+    i: str = "intermediary_conclusions"
+    c: str = "conclusion"
+    fp: str = "premises_formalized"
+    fi: str = "intermediary_conclusions_formalized"
+    fc: str = "conclusion_formalized"
+    k: str = "plchd_substitutions"
+
+
+@dataclasses.dataclass
 class BaseExample(ABC):
     """Abstract Base Example dataclass"""
 
@@ -172,6 +194,11 @@ class DeepA2Item(
 
         return cls(**unbatched_data)
 
+    @staticmethod
+    def angles() -> Dict[str, str]:
+        """maps keys to field names of DeepA2 Item"""
+        return dataclasses.asdict(DA2_ANGLES_MAP())
+
 
 @dataclasses.dataclass
 class GenerativeMode:
@@ -181,3 +208,38 @@ class GenerativeMode:
     target: str
     input: List[str]
     weight: float = 1.0
+
+    @staticmethod
+    def from_keys(name: str):
+        """
+        Tries to create GenerativeMode from keys formula `name`
+        of the form
+
+          `a+b+... => o`
+        """
+
+        if " => " not in name:
+            return None
+
+        input_str, target = name.split(" => ")[:2]
+
+        if "+" in input_str:
+            input_list = input_str.split("+")
+            input_list = [s.strip() for s in input_list]
+        else:
+            input_list = [input_str.strip()]
+
+        target = target.strip()
+
+        if target not in DeepA2Item.angles() or any(
+            key not in DeepA2Item.angles() for key in input_list
+        ):
+            return None
+
+        mode = GenerativeMode(
+            name=name,
+            input=[DeepA2Item.angles()[key] for key in input_list],
+            target=DeepA2Item.angles()[target],
+        )
+
+        return mode

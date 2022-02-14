@@ -14,6 +14,9 @@ answer: 'The Sun is closer to Earth than the stars
    seen in the night sky.'
 hypothesis: 'the sun is brighter than other stars 
    because the sun is closer to earth than other stars'
+core_concepts:
+-  'as a source of light becomes closer , the light 
+   will appear brighter'
 step_proof: 'sent10 & sent20 -> int1: stars are a source 
    of light; int1 & sent7 -> int2: as the stars becomes
    closer, the light of the stars will appear brighter;
@@ -81,13 +84,13 @@ that is because {{ statements }}
 
 while shuffling sentences (explicit premises and distractors). All intermediary conclusions are implicit. 
 
-Thirdly, we construct lists of reasons and conjectures, and a clear paraphrase of the source text (which drops all distractors). We use `hypothesis` as the argument's `gist`, and `question` as its `context`.
+Thirdly, we construct lists of reasons and conjectures, and a clear paraphrase of the source text (which drops all distractors). We use `hypothesis` as the argument's `gist`, a `core_concepts` as the its `title`, and `question` as its `context`.
 
 
 ### Features
 
 - [x] `source_text`
-- [ ] `title`
+- [x] `title`
 - [x] `gist`
 - [x] `source_paraphrase`
 - [x] `context`

@@ -16,9 +16,15 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
     def __init__(self, **config) -> None:
         self._sources: Dict = config["sources"]
         self._export_path: str = config["export_path"]
-        self._generative_modes: List[GenerativeMode] = [
-            GenerativeMode(**mode_data) for mode_data in config["generative_modes"]
-        ]
+        self._generative_modes: List[GenerativeMode] = []
+        for mode_data in config["generative_modes"]:
+            if "input" not in mode_data or "target" not in mode_data:
+                mode = GenerativeMode.from_keys(mode_data.get("name", "invalid_mode"))
+            else:
+                mode = GenerativeMode(**mode_data)
+            if mode is None:
+                raise ValueError(f"Invalid mode: {mode_data}")
+            self._generative_modes.append(mode)
         self._deactive_modes_with_weights = any(
             mode.weight < 1.0 for mode in self._generative_modes
         )
