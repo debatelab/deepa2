@@ -29,9 +29,7 @@ class BaseBuilderTest:
         """tests builder's preprocessor"""
 
         if self.RAW_EXAMPLES:
-            prep_example_class = self.PREPROCESSED_EXAMPLES[
-                0
-            ].__class__
+            prep_example_class = self.PREPROCESSED_EXAMPLES[0].__class__
             raw_data = {}
             for field in dataclasses.fields(self.RAW_EXAMPLES[0]):
                 key = field.name
