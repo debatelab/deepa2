@@ -78,7 +78,7 @@ Keys for specifying generative modes:
 
 ## Extensions of the Original Framework
 
-We're continously extending teh original `deepa2` framework and have, so far, added the following additional features (dataset dimensions):
+We're continously extending the original `deepa2` framework and have, so far, added the following additional features (dataset dimensions):
 
 ```yml
 erroneous_argdown:  # flawed reconstruction, e.g.
