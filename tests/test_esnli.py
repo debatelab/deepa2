@@ -78,13 +78,13 @@ def fixture_processed_examples():
         batched_input = {
             k: [v] for k, v in dataclasses.asdict(preprocessed_example).items()
         }
-        builder = ESNLIBuilder()
-        builder.set_input(batched_input)
-        builder.configure_product()
-        builder.produce_da2item()
-        builder.postprocess_da2item()
-        builder.add_metadata_da2item()
-        da2items.extend(builder.product)  # product is a list of dicts
+        esnli_builder = ESNLIBuilder()
+        esnli_builder.set_input(batched_input)
+        esnli_builder.configure_product()
+        esnli_builder.produce_da2item()
+        esnli_builder.postprocess_da2item()
+        esnli_builder.add_metadata_da2item()
+        da2items.extend(esnli_builder.product)  # product is a list of dicts
     return da2items
 
 

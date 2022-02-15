@@ -3,13 +3,14 @@
 # pylint: skip-file
 
 from deepa2.datastructures import (
-    BaseExample,
-    DeepA2Item,
-    QuotedStatement,
     ArgdownStatement,
+    BaseExample,
+    DA2_ANGLES_MAP,
+    DeepA2Item,
+    DeepA2BaseItem,
     Formalization,
     GenerativeMode,
-    DA2_ANGLES_MAP,
+    QuotedStatement,
 )
 
 from deepa2.parsers import (
