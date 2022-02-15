@@ -89,7 +89,7 @@ We welcome contributions to this repository, especially scripts that port existi
 1. a Builder class that describes how DeepA2 examples will be constructed and that implements the abstract `builder.Builder` interface (such as, e.g., `builder.entailmentbank_builder.EnBankBuilder`);
 2. a DataLoader which provides a method for loading the raw data as a 🤗 Dataset object (such as, for example, `builder.entailmentbank_builder.EnBankLoader`) -- you may use `deepa2.DataLoader` as is in case the data is available in a way compatible with 🤗 Dataset;
 3. dataclasses which describe the features of the raw data and the preprocessed data, and which extend the dummy classes `deepa2.RawExample` and `deepa2.PreprocessedExample`;
-4. a collection of unit tests that check the concrete Builder's methods (such as, e.g., `tests/test_esnli.py`);
+4. a collection of unit tests that check the concrete Builder's methods (such as, e.g., `tests/test_enbank.py`);
 5. a documentation of the pipeline (as for example in `docs/esnli.md`).
 
 Consider **suggesting** to collaboratively construct such a pipeline by opening a [new issue](https://github.com/debatelab/deepa2/issues/new?assignees=&labels=enhancement&template=new_dataset.md&title=%5BDATASET+NAME%5D).

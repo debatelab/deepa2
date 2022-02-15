@@ -96,5 +96,6 @@ source_paraphrase:  # a maximally clear re-rendition of source_text
 title:              # a telling title of the argument, e.g.
   "The ontological argument"
 context:             # the context, e.g.
-  "St. Anselm's Proslogion"
+  "Does god exist? Here's a famous proof from St. Anselm's 
+  Proslogion"
 ```
