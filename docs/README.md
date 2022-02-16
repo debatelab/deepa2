@@ -78,7 +78,7 @@ Keys for specifying generative modes:
 
 ## Extensions of the Original Framework
 
-We're continously extending teh original `deepa2` framework and have, so far, added the following additional features (dataset dimensions):
+We're continously extending the original `deepa2` framework and have, so far, added the following additional features (dataset dimensions):
 
 ```yml
 erroneous_argdown:  # flawed reconstruction, e.g.
@@ -96,6 +96,6 @@ source_paraphrase:  # a maximally clear re-rendition of source_text
 title:              # a telling title of the argument, e.g.
   "The ontological argument"
 context:             # the context, e.g.
-  "Does god exist? Here's a famous proof from St. Anselm's 
+  "Does god exist? This is a famous proof from St. Anselm's 
   Proslogion"
 ```
