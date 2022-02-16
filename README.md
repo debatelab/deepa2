@@ -99,7 +99,7 @@ Consider **suggesting** to collaboratively construct such a pipeline by opening 
 This repository builds on and extends the DeepA2 Framework originally presented in:
 
 ```bibtex
-@misc{betz2021deepa2,
+@article{betz2021deepa2,
       title={DeepA2: A Modular Framework for Deep Argument Analysis with Pretrained Neural Text2Text Language Models}, 
       author={Gregor Betz and Kyle Richardson},
       year={2021},
