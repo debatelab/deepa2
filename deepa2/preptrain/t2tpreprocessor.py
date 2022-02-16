@@ -2,6 +2,7 @@
 
 import dataclasses
 import logging
+from pathlib import Path
 import random
 from typing import Dict, Any, List
 
@@ -106,6 +107,19 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
             else:
                 logging.warning("Not a dataset_dict: %s; skipping.", source)
 
-        datasets.DatasetDict(
+        # Save to disk
+        dataset = datasets.DatasetDict(
             {k: datasets.concatenate_datasets(v) for k, v in t2t_datasets.items()}
-        ).save_to_disk(self._export_path)
+        )
+        if self._export_path:
+            path = Path(
+                self._export_path,
+            )
+            for key, split in dataset.items():
+                logging.info("Saving processed t2t split %s ...", key)
+                file_name = f"{key}.parquet"
+                (path / key).mkdir(
+                    parents=True, exist_ok=True
+                )  # create dirs if necessary
+                split.to_parquet(path / key / file_name)
+            logging.info("Saved t2t dataset to %s.", path)
