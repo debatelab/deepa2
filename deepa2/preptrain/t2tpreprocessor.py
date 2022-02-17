@@ -17,6 +17,7 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
     def __init__(self, **config) -> None:
         self._sources: Dict = config["sources"]
         self._export_path: str = config["export_path"]
+        self._export_format: str = config["export_format"]
         self._generative_modes: List[GenerativeMode] = []
         for mode_data in config["generative_modes"]:
             if "input" not in mode_data or "target" not in mode_data:
@@ -46,10 +47,10 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
         for mode in self._generative_modes:
             if any(input not in da2_angles for input in mode.input):
                 logging.error("Input of mode not a DeepA2 field: %s", mode)
-                raise ValueError("Input of mode not a DeepA2 field.")
+                raise ValueError(f"Input of mode not a DeepA2 field: {mode}.")
             if mode.target not in da2_angles:
                 logging.error("Target of mode not a DeepA2 field: %s", mode)
-                raise ValueError("Target of mode not a DeepA2 field.")
+                raise ValueError(f"Target of mode not a DeepA2 field: {mode}.")
 
     def map_to_t2t(self, da2_dict: Dict[str, Any]) -> Dict[str, List[str]]:
         """create multiple t2t items from a single Deep A2 item"""
@@ -111,15 +112,31 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
         dataset = datasets.DatasetDict(
             {k: datasets.concatenate_datasets(v) for k, v in t2t_datasets.items()}
         )
+
+        def save_dataset(dataset: datasets.Dataset, path: Path) -> None:
+            """saves the dataset in format given by `self._export_format`"""
+            if self._export_format == "parquet":
+                dataset.to_parquet(path)
+            elif self._export_format == "csv":
+                dataset.to_csv(path)
+            elif self._export_format == "jsonl":
+                dataset.to_json(path, orient="records", lines=True)
+            else:
+                logging.warning(
+                    "Unknown format: {self._export_format}, dataset not saved."
+                )
+
         if self._export_path:
             path = Path(
                 self._export_path,
             )
             for key, split in dataset.items():
                 logging.info("Saving processed t2t split %s ...", key)
-                file_name = f"{key}.parquet"
+                file_name = f"{key}.{self._export_format}"
                 (path / key).mkdir(
                     parents=True, exist_ok=True
                 )  # create dirs if necessary
-                split.to_parquet(path / key / file_name)
+                save_dataset(split, path / key / file_name)
             logging.info("Saved t2t dataset to %s.", path)
+        else:
+            logging.warning("No export path, t2t dataset is not saved.")
