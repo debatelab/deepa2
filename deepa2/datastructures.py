@@ -125,7 +125,6 @@ class DeepA2Item(
         entity_placeholders: placeholders in formalizations
         misc_placeholders: placeholders in formalizations
         plchd_substitutions: substitutions for placeholders
-        distractors: list of disctractors in àrgument_source`
         metadata: metadata
 
     """
@@ -171,7 +170,6 @@ class DeepA2Item(
         default_factory=lambda: []
     )
 
-    distractors: List[str] = dataclasses.field(default_factory=lambda: [])
     metadata: List[Tuple[str, Any]] = dataclasses.field(default_factory=lambda: [])
 
     @classmethod

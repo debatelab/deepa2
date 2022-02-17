@@ -99,7 +99,6 @@ Thirdly, we construct lists of reasons and conjectures, and a clear paraphrase o
 
 - [x] `reasons`
 - [x] `conjectures`
-- [x] `distractors`
 
 <!-- -->
 

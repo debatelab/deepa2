@@ -13,6 +13,7 @@ from deepa2.preptrain import T2TPreprocessor
 config_1 = {
     "sources": [{"path": "."}],
     "export_path": ".",
+    "export_format": "parquet",
     "generative_modes": [
         {
             "name": "not-used-to-infer-inputs-and-target",
@@ -28,6 +29,7 @@ config_1 = {
 config_2 = {  # same as config_1, mode inferred from name
     "sources": [{"path": "."}],
     "export_path": ".",
+    "export_format": "parquet",
     "generative_modes": [
         {
             "name": "s+r => j",

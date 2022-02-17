@@ -125,7 +125,6 @@ class TestEnBank(BaseBuilderTest):
             entity_placeholders=[],
             misc_placeholders=[],
             plchd_substitutions=[],
-            distractors=[],
             metadata=[
                 ("labels", "{'sent1': 1, 'sent2': 2, 'int1': 5, 'sent3': 4}"),
                 ("reason_order", "['sent1', 'sent2', 'sent3']"),

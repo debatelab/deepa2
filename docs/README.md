@@ -19,6 +19,8 @@ Options:
   --path TEXT                path to DeepA2 dataset
   --revision TEXT            version of the dataset (script) to load
   --export-path TEXT         local directory to which t2t dataset is saved
+  --export-format TEXT       format in t2t dataset is saved (parquet, csv,
+                             jsonl), will use parquet if left blank
   --input-column-name TEXT   name of input column of t2t dataset  [default:
                              text]
   --target-column-name TEXT  name of target column of t2t dataset  [default:
@@ -42,6 +44,7 @@ sources:                # we load two datasets:
 -   path: "./data/processed/enbank/task_2"
     revision: "main"
 export_path: "data/tmp" 
+export_format: "csv" 
 generative_modes:       # list of modes used to construct t2t items 
 -   name: "s+r => a"    # fully specified mode:
     target: "argdown_reconstruction"

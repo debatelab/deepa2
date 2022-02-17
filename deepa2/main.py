@@ -134,6 +134,11 @@ def serve(  # pylint: disable=too-many-arguments
     export_path: Optional[str] = typer.Option(
         None, help="local directory to which t2t dataset is saved"
     ),
+    export_format: Optional[str] = typer.Option(
+        None,
+        help="format in t2t dataset is saved (parquet, csv, "
+        "jsonl), will use parquet if left blank",
+    ),
     input_column_name: Optional[str] = typer.Option(
         "text", help="name of input column of t2t dataset"
     ),
@@ -165,6 +170,8 @@ def serve(  # pylint: disable=too-many-arguments
         config["sources"] = [{"path": path, "revision": revision}]
     if export_path:
         config["export_path"] = export_path
+    if export_format:
+        config["export_format"] = export_format
     config["input_column_name"] = input_column_name
     config["target_column_name"] = target_column_name
 
@@ -175,8 +182,17 @@ def serve(  # pylint: disable=too-many-arguments
         sys.exit(-1)
 
     if "export_path" not in config:
-        logging.warning("No export specified, defaulting to ./exported.")
+        typer.echo("No export path specified, defaulting to ./exported.")
         config["export_path"] = "exported"
+
+    if "export_format" not in config:
+        typer.echo("No export format specified, defaulting to parquet.")
+        config["export_format"] = "parquet"
+    elif config["export_format"] not in ["csv", "jsonl", "parquet"]:
+        typer.echo(
+            f"Unknown export format: {config['export_format']}, defaulting to parquet."
+        )
+        config["export_format"] = "parquet"
 
     t2t_preprocessor = T2TPreprocessor(**config)
     t2t_preprocessor.transform()
