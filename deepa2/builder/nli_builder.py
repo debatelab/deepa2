@@ -496,12 +496,12 @@ class ESNLIBuilder(Builder):
         record.source_text = ""
         record.reasons = []
         record.conjectures = []
-        record.distractors = []
+        distractors = []
         for item in source_text_list:
             pointer = len(record.source_text)
             if item[0] == "distractor":
                 record.source_text += item[1]
-                record.distractors.append(item[1])
+                distractors.append(item[1])
             elif item[0] in ["reason", "conjecture"]:
                 record.source_text += item[1].text
                 item[1].starts_at = pointer
@@ -512,6 +512,7 @@ class ESNLIBuilder(Builder):
             record.source_text += " "
 
         record.source_text = record.source_text.strip(" ")
+        record.metadata.append(("distractors", distractors))
 
         # Step 5: gist, source_paraphrase, context, title
         # use premise2 as gist
