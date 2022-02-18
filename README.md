@@ -28,7 +28,7 @@ The [Documentation](docs/) describes usage options and gives background info on 
 
 ```bash
 source my-projects-venv/bin/activate 
-python -m pip install git+https://github.com/debatelab/deepa2.git
+python -m pip install deepa2
 ```
 
 2. Add `deepa2` preprocessor to your training pipeline. Your training script may look like, for example:
