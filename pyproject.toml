@@ -1,10 +1,11 @@
 [tool.poetry]
 name = "deepa2"
 version = "0.1.0"
-description = "Cast NLP data as multiangular DeepA2 datasets and integrate these in training piepline"
+description = "Cast NLP data as multiangular DeepA2 datasets and integrate these in training pipeline"
 authors = ["Gregor Betz <gregor.betz@kit.edu>"]
 license = "Apache-2.0"
 readme = "README.md"
+homepage = "https://github.com/debatelab/deepa2"
 
 [tool.poetry.scripts]
 deepa2 = "deepa2.main:app"

@@ -28,6 +28,7 @@ The [Documentation](docs/) describes usage options and gives background info on 
 
 ```bash
 source my-projects-venv/bin/activate 
+python --version  # should be ^3.8
 python -m pip install deepa2
 ```
 
