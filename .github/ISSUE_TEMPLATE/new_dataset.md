@@ -2,7 +2,7 @@
 name: New dataset
 about: Use this template for suggesting to port a new (NLP) dataset to deepa2.
 title: "[DATASET NAME]"
-labels: "enhancement"
+labels: "new dataset"
 ---
 
 
