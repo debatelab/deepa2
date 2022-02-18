@@ -165,6 +165,8 @@ def serve(  # pylint: disable=too-many-arguments
         if config_path.exists():
             with config_path.open(encoding="utf8") as yaml_file:
                 config = yaml.load(yaml_file, Loader=yaml.Loader)
+        else:
+            typer.echo(f"No configfile: {config_path}.")
     # cmd-line args overwrite configfile
     if path:
         config["sources"] = [{"path": path, "revision": revision}]
