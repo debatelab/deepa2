@@ -1,0 +1,14 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Betz"
+  given-names: "Gregor"
+  orcid: "https://orcid.org/0000-0001-5802-5030"
+  website: "https://www.gregorbetz.de/"
+- family-names: "Richardson"
+  given-names: "Kyle"
+  website: "https://www.krichardson.me/"
+title: "DeepA2: A Modular Framework for Deep Argument Analysis with Pretrained Neural Text2Text Language Models"
+version: 0.1.1
+date-released: 2021-10-04
+url: "https://arxiv.org/abs/2110.01509"
