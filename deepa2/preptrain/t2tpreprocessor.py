@@ -90,11 +90,18 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
     def transform(self) -> None:
         """transforms sources"""
 
+        logging.info(
+            "#################################################################"
+        )
+        logging.info("Starting new preptrain transformation: {datetime.datetime.now()}")
+
         t2t_datasets: Dict[str, List] = {}
 
         for source in self._sources:
+            logging.info("Loading dataset dict from source: %s", source)
             da2_dataset = datasets.load_dataset(**source)
             if isinstance(da2_dataset, datasets.DatasetDict):
+                logging.info("Processing dataset dict %s", da2_dataset)
                 for key, split in da2_dataset.items():
                     if key not in t2t_datasets:
                         t2t_datasets[key] = []
@@ -130,13 +137,16 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
             path = Path(
                 self._export_path,
             )
-            for key, split in dataset.items():
-                logging.info("Saving processed t2t split %s ...", key)
-                file_name = f"{key}.{self._export_format}"
-                (path / key).mkdir(
-                    parents=True, exist_ok=True
-                )  # create dirs if necessary
-                save_dataset(split, path / key / file_name)
+            (path).mkdir(parents=True, exist_ok=True)  # create dirs if necessary
+            if self._export_format == "arrow":
+                # save entire datasetdict
+                dataset.save_to_disk(str(path))
+            else:
+                # save splits individually
+                for key, split in dataset.items():
+                    logging.info("Saving processed t2t split %s ...", key)
+                    file_name = f"{key}.{self._export_format}"
+                    save_dataset(split, path / file_name)
             logging.info("Saved t2t dataset to %s.", path)
         else:
             logging.warning("No export path, t2t dataset is not saved.")

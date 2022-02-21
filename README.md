@@ -44,18 +44,19 @@ python -m pip install deepa2
 # prepare for text2text training
 deepa2 serve \
     --path some-deepa2-dataset \    # <<< 🎂
-    --export_path tmp/t2t-deepa2 \  # >>> 🍰
+    --export_format csv \
+    --export_path t2t \             # >>> 🍰
 
 # run default training script, 
 # e.g., with 🤗 Transformers
 python .../run_summarization.py \
-    --dataset_name tmp/t2t-deepa2 \ # <<< 🍰
+    --train_file t2t/train.csv \    # <<< 🍰
     --text_column "text" \
     --summary_column "target" \
     --...
 
 # clean-up
-rm -r tmp/t2t-deepa2
+rm -r t2t
 ```
 
 3. That's it.

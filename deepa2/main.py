@@ -137,7 +137,7 @@ def serve(  # pylint: disable=too-many-arguments
     export_format: Optional[str] = typer.Option(
         None,
         help="format in t2t dataset is saved (parquet, csv, "
-        "jsonl), will use parquet if left blank",
+        "jsonl, arrow), will use arrow if left blank",
     ),
     input_column_name: Optional[str] = typer.Option(
         "text", help="name of input column of t2t dataset"
@@ -188,9 +188,9 @@ def serve(  # pylint: disable=too-many-arguments
         config["export_path"] = "exported"
 
     if "export_format" not in config:
-        typer.echo("No export format specified, defaulting to parquet.")
-        config["export_format"] = "parquet"
-    elif config["export_format"] not in ["csv", "jsonl", "parquet"]:
+        typer.echo("No export format specified, saving datasetdict as arrow tables.")
+        config["export_format"] = "arrow"
+    elif config["export_format"] not in ["csv", "jsonl", "parquet", "arrow"]:
         typer.echo(
             f"Unknown export format: {config['export_format']}, defaulting to parquet."
         )
