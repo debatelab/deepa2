@@ -20,7 +20,10 @@ def test_from_batch():
     da2_item = DeepA2Item(
         source_text=source_text, reasons=reasons, conjectures=conjectures
     )
-    print(dataclasses.fields(da2_item))
+
+    print([field.type for field in dataclasses.fields(da2_item)])
+
+    print(da2_item)
 
     da2_batched = {k: [v] for k, v in dataclasses.asdict(da2_item).items()}
 

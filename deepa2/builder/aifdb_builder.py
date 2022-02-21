@@ -419,19 +419,24 @@ class AIFDBBuilder(Builder):
                 QuotedStatement(text=r, starts_at=-1, ref_reco=e + 1)
                 for e, r in enumerate(self.input.reasons)
             ]
-        n_reas = len(record.reasons)
+        else:
+            record.reasons = [QuotedStatement()]
+        n_reas = len(record.reasons) if record.reasons else 0
         if self.input.conjectures:
             record.conjectures = [
                 QuotedStatement(text=j, starts_at=-1, ref_reco=n_reas + 1)
                 for j in self.input.conjectures
             ]
+        else:
+            record.conjectures = [QuotedStatement()]
         # source paraphrase
-        sp_template = self._env.get_template(
-            dict(record.metadata)["config"]["sp_template"]
-        )
-        record.source_paraphrase = sp_template.render(
-            premises=self.input.premises, conclusion=self.input.conclusions
-        )
+        if record.metadata:
+            sp_template = self._env.get_template(
+                dict(record.metadata)["config"]["sp_template"]
+            )
+            record.source_paraphrase = sp_template.render(
+                premises=self.input.premises, conclusion=self.input.conclusions
+            )
 
     def postprocess_da2item(self) -> None:
         pass

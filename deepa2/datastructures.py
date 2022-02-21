@@ -3,7 +3,7 @@
 from abc import ABC
 import dataclasses
 import logging
-from typing import Any, List, Dict, Tuple
+from typing import Any, Callable, List, Dict, Tuple, Optional
 
 import datasets
 
@@ -71,7 +71,7 @@ class DeepA2BaseItem(ABC):
 class QuotedStatement(DeepA2BaseItem):
     """dataclass representing verbatim quote in da2item"""
 
-    text: str = ""
+    text: Optional[str] = ""
     starts_at: int = -1
     ref_reco: int = -1
 
@@ -80,7 +80,7 @@ class QuotedStatement(DeepA2BaseItem):
 class ArgdownStatement(DeepA2BaseItem):
     """dataclass representing argdown statement in da2item"""
 
-    text: str = ""
+    text: Optional[str] = ""
     explicit: Any = ""
     ref_reco: int = -1
 
@@ -129,46 +129,30 @@ class DeepA2Item(
 
     """
 
-    source_text: str = ""
+    source_text: Optional[str] = None
 
-    title: str = ""
-    gist: str = ""
-    source_paraphrase: str = ""
-    context: str = ""
+    title: Optional[str] = None
+    gist: Optional[str] = None
+    source_paraphrase: Optional[str] = None
+    context: Optional[str] = None
 
-    argdown_reconstruction: str = ""
-    erroneous_argdown: str = ""
+    argdown_reconstruction: Optional[str] = None
+    erroneous_argdown: Optional[str] = None
 
-    reasons: List[QuotedStatement] = dataclasses.field(
-        default_factory=lambda: [QuotedStatement()]
-    )
-    conjectures: List[QuotedStatement] = dataclasses.field(
-        default_factory=lambda: [QuotedStatement()]
-    )
+    reasons: Optional[List[QuotedStatement]] = None
+    conjectures: Optional[List[QuotedStatement]] = None
 
-    premises: List[ArgdownStatement] = dataclasses.field(default_factory=lambda: [])
-    intermediary_conclusions: List[ArgdownStatement] = dataclasses.field(
-        default_factory=lambda: [ArgdownStatement()]
-    )
-    conclusion: List[ArgdownStatement] = dataclasses.field(
-        default_factory=lambda: [ArgdownStatement()]
-    )
+    premises: Optional[List[ArgdownStatement]] = None
+    intermediary_conclusions: Optional[List[ArgdownStatement]] = None
+    conclusion: Optional[List[ArgdownStatement]] = None
 
-    premises_formalized: List[Formalization] = dataclasses.field(
-        default_factory=lambda: [Formalization()]
-    )
-    intermediary_conclusions_formalized: List[Formalization] = dataclasses.field(
-        default_factory=lambda: [Formalization()]
-    )
-    conclusion_formalized: List[Formalization] = dataclasses.field(
-        default_factory=lambda: [Formalization()]
-    )
-    predicate_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
-    entity_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
-    misc_placeholders: List[str] = dataclasses.field(default_factory=lambda: [])
-    plchd_substitutions: List[Tuple[str, str]] = dataclasses.field(
-        default_factory=lambda: []
-    )
+    premises_formalized: Optional[List[Formalization]] = None
+    intermediary_conclusions_formalized: Optional[List[Formalization]] = None
+    conclusion_formalized: Optional[List[Formalization]] = None
+    predicate_placeholders: Optional[List[str]] = None
+    entity_placeholders: Optional[List[str]] = None
+    misc_placeholders: Optional[List[str]] = None
+    plchd_substitutions: Optional[List[Tuple[str, str]]] = None
 
     metadata: List[Tuple[str, Any]] = dataclasses.field(default_factory=lambda: [])
 
@@ -178,16 +162,22 @@ class DeepA2Item(
         unbatched_data = {k: v[0] for k, v in batched_data.items()}
 
         for field in dataclasses.fields(cls):
-            if field.type in [
-                List[QuotedStatement],
-                List[ArgdownStatement],
-                List[Formalization],
+            item_class: Optional[Callable] = None
+            if field.name in ["reasons", "conjectures"]:
+                item_class = QuotedStatement
+            elif field.name in ["premises", "intermediary_conclusions", "conclusion"]:
+                item_class = ArgdownStatement
+            elif field.name in [
+                "premises_formalized",
+                "intermediary_conclusions_formalized",
+                "conclusion_formalized",
             ]:
-                if field.name in unbatched_data:
+                item_class = Formalization
+            if item_class:
+                if unbatched_data.get(field.name):
                     # field requires re-initialization
                     unbatched_data[field.name] = [
-                        field.type.__args__[0](**item)
-                        for item in unbatched_data[field.name]
+                        item_class(**item) for item in unbatched_data[field.name]
                     ]
 
         return cls(**unbatched_data)

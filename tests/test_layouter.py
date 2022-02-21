@@ -61,6 +61,12 @@ def test_reasons_none(layouter):
     da2item = layouter.format(DeepA2Item(reasons=reasons))
     assert da2item["reasons"] == reasons
 
+def test_reasons_none2(layouter):
+    """test layouter"""
+    reasons = [QuotedStatement()]
+    da2item = layouter.format(DeepA2Item(reasons=reasons))
+    assert da2item["reasons"] == " "
+
 
 def test_adst(layouter):
     """test layouter"""

@@ -2,7 +2,7 @@
 
 import dataclasses
 import logging
-from typing import Any, List, Dict, Tuple, Optional
+from typing import Any, List, Dict, Tuple, Optional, Union
 
 import jinja2
 
@@ -43,23 +43,31 @@ class DeepA2Layouter:  # pylint: disable=too-few-public-methods
         if not data:
             return ""
 
-        if field.type == str:
+        if field.type == Union[str, None]:
             return data
 
-        if field.type == List[str]:
+        if field.type == Union[List[str], None]:
             return self._format_list(data)
 
-        if field.type == List[Tuple[str, str]]:
+        if field.type in [
+            List[Tuple[str, str]],
+            Union[List[Tuple[str, str]], None],
+        ]:
             return self._format_dict(dict(data))
 
         if field.type in [
-            List[QuotedStatement],
-            List[ArgdownStatement],
-            List[Formalization],
+            Union[List[QuotedStatement], None],
+            Union[List[ArgdownStatement], None],
+            Union[List[Formalization], None],
         ]:
-            template = self._get_template(field)
+            template = self._get_template(data)
             if template:  # pylint: disable=no-else-return
-                da2list = [template.render(**dataclasses.asdict(item)) for item in data]
+                da2list = [
+                    template.render(**dataclasses.asdict(item))
+                    for item in data
+                    if dataclasses.asdict(item).get("text")
+                    or dataclasses.asdict(item).get("form")
+                ]
                 return self._format_list(da2list)
             else:
                 logging.warning("DeepA2Layouter no template found.")
@@ -67,9 +75,9 @@ class DeepA2Layouter:  # pylint: disable=too-few-public-methods
         logging.warning("DeepA2Layouter couldn't format field %s", field)
         return "not-formatted"
 
-    def _get_template(self, field: dataclasses.Field) -> Optional[jinja2.Template]:
+    def _get_template(self, data: List) -> Optional[jinja2.Template]:
         """fetches template for DeepA2Item field"""
-        template = self._templates.get(field.type.__args__[0])
+        template = self._templates.get(data[0].__class__)
         return template
 
     def _format_list(self, da2list: List[str]) -> str:
