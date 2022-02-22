@@ -340,10 +340,14 @@ class AddPremisesConclusion(Transformer):
     def transform(  # type: ignore[override]
         self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
     ) -> DeepA2Item:
-        premises = [
-            ArgdownStatement(text=reason.text, ref_reco=reason.ref_reco)
-            for reason in da2_item.reasons
-        ]
+        premises = (
+            [
+                ArgdownStatement(text=reason.text, ref_reco=reason.ref_reco)
+                for reason in da2_item.reasons
+            ]
+            if da2_item.reasons
+            else []
+        )
         conclusion_text = list(prep_example.intermediate_conclusions.values())[-1]
         conclusion_text = conclusion_text.strip(".") + "."
         conclusion = [
@@ -372,7 +376,9 @@ class AddParaphrase(Transformer):
     def transform(  # type: ignore[override]
         self, da2_item: DeepA2Item, prep_example: PreprocessedEnBankExample
     ) -> DeepA2Item:
-        reasons = [reason.text for reason in da2_item.reasons]
+        reasons = (
+            [reason.text for reason in da2_item.reasons] if da2_item.reasons else []
+        )
         paraphrase = self.templates["paraphrase"].render(
             reasons=reasons, answer_text=prep_example.answer_text
         )

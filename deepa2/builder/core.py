@@ -29,6 +29,7 @@ from deepa2 import (
     ArgdownStatement,
     Formalization,
 )
+import deepa2
 
 
 @dataclasses.dataclass
@@ -340,7 +341,7 @@ class Director:  # pylint: disable=too-many-instance-attributes
             batched=True,
             batch_size=1,
             remove_columns=pp_example_fields,
-            # features=da2_features,
+            features=deepa2.DA2_FEATURES,
         )
         logging.info("Created new %s deepa2 dataset: %s", name, dataset)
         logging.debug("Features: %s", dataset["train"].info.features)

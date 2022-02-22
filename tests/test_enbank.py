@@ -4,7 +4,6 @@ from __future__ import annotations
 from deepa2 import (
     ArgdownStatement,
     DeepA2Item,
-    Formalization,
     QuotedStatement,
 )
 
@@ -100,7 +99,6 @@ class TestEnBank(BaseBuilderTest):
                 "--\n"
                 "(5) int_conc_1"
             ),
-            erroneous_argdown="",
             reasons=[
                 QuotedStatement(text="sent_1", starts_at=-1, ref_reco=1),
                 QuotedStatement(text="sent_2", starts_at=-1, ref_reco=2),
@@ -112,19 +110,11 @@ class TestEnBank(BaseBuilderTest):
                 )
             ],
             premises=[
-                ArgdownStatement(text="sent_1", explicit="", ref_reco=1),
-                ArgdownStatement(text="sent_2", explicit="", ref_reco=2),
-                ArgdownStatement(text="sent_3", explicit="", ref_reco=4),
+                ArgdownStatement(text="sent_1", explicit=None, ref_reco=1),
+                ArgdownStatement(text="sent_2", explicit=None, ref_reco=2),
+                ArgdownStatement(text="sent_3", explicit=None, ref_reco=4),
             ],
-            intermediary_conclusions=[ArgdownStatement()],
-            conclusion=[ArgdownStatement(text="int_conc_1.", explicit="", ref_reco=5)],
-            premises_formalized=[Formalization()],
-            intermediary_conclusions_formalized=[Formalization()],
-            conclusion_formalized=[Formalization()],
-            predicate_placeholders=[],
-            entity_placeholders=[],
-            misc_placeholders=[],
-            plchd_substitutions=[],
+            conclusion=[ArgdownStatement(text="int_conc_1.", ref_reco=5)],
             metadata=[
                 ("labels", "{'sent1': 1, 'sent2': 2, 'int1': 5, 'sent3': 4}"),
                 ("reason_order", "['sent1', 'sent2', 'sent3']"),

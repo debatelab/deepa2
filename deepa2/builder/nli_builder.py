@@ -367,7 +367,8 @@ class ESNLIBuilder(Builder):
     def _map_data_to_roles(self, record: DeepA2Item, idx: int = 0) -> Dict:
         """initializes population of record"""
         data = {}
-        if dict(record.metadata)["label"] == "entailment":
+        metadata = dict(record.metadata)
+        if metadata["label"] == "entailment":
             data = {
                 "premise": self.input.premise,
                 "hypothesis": self.input.hypothesis_ent,
@@ -400,7 +401,8 @@ class ESNLIBuilder(Builder):
         """populates record at product index `int`"""
 
         record = self._product[idx]
-        config = dict(record.metadata)["config"]
+        metadata = dict(record.metadata)
+        config = metadata["config"]
 
         # Initialize: mapping input data to argumentative roles
         data = self._map_data_to_roles(record=record, idx=idx)
@@ -431,14 +433,14 @@ class ESNLIBuilder(Builder):
         # premises
         record.premises = []
         for i in range(2):
-            explicit = bool(dict(record.metadata)["argument_mask"][i])
+            explicit = bool(metadata["argument_mask"][i])
             argdown_statement = ArgdownStatement(
                 text=argument_list[i], explicit=explicit, ref_reco=i + 1
             )
             record.premises.append(argdown_statement)
         # conclusion
         i = 2
-        explicit = bool(dict(record.metadata)["argument_mask"][i])
+        explicit = bool(metadata["argument_mask"][i])
         argdown_statement = ArgdownStatement(
             text=argument_list[i], explicit=explicit, ref_reco=i + 1
         )
@@ -466,13 +468,13 @@ class ESNLIBuilder(Builder):
         source_text_list = []
         # add distractors
         for i, sentence in enumerate(data["distractors"]):
-            if dict(record.metadata)["distractor_mask"][i]:
+            if metadata["distractor_mask"][i]:
                 source_text_list.append(["distractor", sentence])
         # add reasons
         argument_list2 = argument_list.copy()
         argument_list2[1] = data["premise_cond"]  # replace conditional
         for i, sentence in enumerate(argument_list2[:-1]):
-            if dict(record.metadata)["argument_mask"][i]:
+            if metadata["argument_mask"][i]:
                 source_text_list.append(
                     [
                         "reason",
@@ -481,7 +483,7 @@ class ESNLIBuilder(Builder):
                 )
         # add conclusion
         i = 2
-        if dict(record.metadata)["argument_mask"][i]:
+        if metadata["argument_mask"][i]:
             sentence = argument_list2[i]
             source_text_list.append(
                 [
@@ -493,25 +495,25 @@ class ESNLIBuilder(Builder):
         random.shuffle(source_text_list)
 
         # 4.b) walk through list and compile source text as well as reason, conclusions, distractors
-        record.source_text = ""
+        source_text = ""
         record.reasons = []
         record.conjectures = []
         distractors = []
         for item in source_text_list:
-            pointer = len(record.source_text)
+            pointer = len(source_text)
             if item[0] == "distractor":
-                record.source_text += item[1]
+                source_text += item[1]
                 distractors.append(item[1])
             elif item[0] in ["reason", "conjecture"]:
-                record.source_text += item[1].text
+                source_text += item[1].text
                 item[1].starts_at = pointer
                 if item[0] == "reason":
                     record.reasons.append(item[1])
                 else:
                     record.conjectures.append(item[1])
-            record.source_text += " "
+            source_text += " "
 
-        record.source_text = record.source_text.strip(" ")
+        record.source_text = source_text.strip(" ")
         record.metadata.append(("distractors", distractors))
 
         # Step 5: gist, source_paraphrase, context, title
@@ -523,6 +525,7 @@ class ESNLIBuilder(Builder):
             premises=[d.text for d in record.reasons],
             conclusion=[d.text for d in record.conjectures],
         )
+
         # title, context
         #   - so far missing
 

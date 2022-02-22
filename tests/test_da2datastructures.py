@@ -20,7 +20,10 @@ def test_from_batch():
     da2_item = DeepA2Item(
         source_text=source_text, reasons=reasons, conjectures=conjectures
     )
-    print(dataclasses.fields(da2_item))
+
+    print([field.type for field in dataclasses.fields(da2_item)])
+
+    print(da2_item)
 
     da2_batched = {k: [v] for k, v in dataclasses.asdict(da2_item).items()}
 
@@ -31,6 +34,13 @@ def test_from_batch():
     print(da2_item2)
 
     assert da2_item2 == da2_item
+
+
+def test_none_fields():
+    """test none fields"""
+    source_text = "source_text"
+    da2_item = DeepA2Item(source_text=source_text)
+    assert da2_item.reasons is None
 
 
 def test_keys_to_features():

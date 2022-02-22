@@ -90,11 +90,13 @@ class DummyBuilder(Builder):
 
     def postprocess_da2item(self) -> None:
         record = self._product[0]  # we produce a single da2item per input only
-        record.metadata.append(("postprocessed", True))
+        if record.metadata:
+            record.metadata.append(("postprocessed", True))
 
     def add_metadata_da2item(self) -> None:
         record = self._product[0]  # we produce a single da2item per input only
-        record.metadata.append(("metadata_added", True))
+        if record.metadata:
+            record.metadata.append(("metadata_added", True))
 
 
 def test_pipeline(tmp_path):
