@@ -6,6 +6,7 @@ from deepa2.datastructures import (
     ArgdownStatement,
     BaseExample,
     DA2_ANGLES_MAP,
+    DA2_FEATURES,
     DeepA2Item,
     DeepA2BaseItem,
     Formalization,

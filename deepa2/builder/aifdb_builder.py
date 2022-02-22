@@ -420,7 +420,7 @@ class AIFDBBuilder(Builder):
                 for e, r in enumerate(self.input.reasons)
             ]
         else:
-            record.reasons = [QuotedStatement()]
+            record.reasons = []
         n_reas = len(record.reasons) if record.reasons else 0
         if self.input.conjectures:
             record.conjectures = [
@@ -428,7 +428,7 @@ class AIFDBBuilder(Builder):
                 for j in self.input.conjectures
             ]
         else:
-            record.conjectures = [QuotedStatement()]
+            record.conjectures = []
         # source paraphrase
         if record.metadata:
             sp_template = self._env.get_template(

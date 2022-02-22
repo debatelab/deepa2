@@ -41,7 +41,7 @@ class DeepA2Layouter:  # pylint: disable=too-few-public-methods
             return None
 
         if not data:
-            return ""
+            return " "
 
         if field.type == Union[str, None]:
             return data

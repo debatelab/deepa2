@@ -6,6 +6,96 @@ import logging
 from typing import Any, Callable, List, Dict, Tuple, Optional
 
 import datasets
+from datasets import Value, Sequence
+
+
+DA2_FEATURES = datasets.Features(
+    {
+        "argdown_reconstruction": Value(dtype="string", id=None),
+        "conclusion": [
+            {
+                "explicit": Value(dtype="bool", id=None),
+                "ref_reco": Value(dtype="int64", id=None),
+                "text": Value(dtype="string", id=None),
+            }
+        ],
+        "conclusion_formalized": [
+            {
+                "form": Value(dtype="string", id=None),
+                "ref_reco": Value(dtype="int64", id=None),
+            }
+        ],
+        "conjectures": [
+            {
+                "ref_reco": Value(dtype="int64", id=None),
+                "starts_at": Value(dtype="int64", id=None),
+                "text": Value(dtype="string", id=None),
+            }
+        ],
+        "context": Value(dtype="string", id=None),
+        "entity_placeholders": Sequence(
+            feature=Value(dtype="string", id=None), length=-1, id=None
+        ),
+        "erroneous_argdown": Value(dtype="string", id=None),
+        "gist": Value(dtype="string", id=None),
+        "intermediary_conclusions": [
+            {
+                "explicit": Value(dtype="bool", id=None),
+                "ref_reco": Value(dtype="int64", id=None),
+                "text": Value(dtype="string", id=None),
+            }
+        ],
+        "intermediary_conclusions_formalized": [
+            {
+                "form": Value(dtype="string", id=None),
+                "ref_reco": Value(dtype="int64", id=None),
+            }
+        ],
+        "metadata": Sequence(
+            feature=Sequence(
+                feature=Value(dtype="string", id=None), length=-1, id=None
+            ),
+            length=-1,
+            id=None,
+        ),
+        "misc_placeholders": Sequence(
+            feature=Value(dtype="string", id=None), length=-1, id=None
+        ),
+        "plchd_substitutions": Sequence(
+            feature=Sequence(
+                feature=Value(dtype="string", id=None), length=-1, id=None
+            ),
+            length=-1,
+            id=None,
+        ),
+        "predicate_placeholders": Sequence(
+            feature=Value(dtype="string", id=None), length=-1, id=None
+        ),
+        "premises": [
+            {
+                "explicit": Value(dtype="bool", id=None),
+                "ref_reco": Value(dtype="int64", id=None),
+                "text": Value(dtype="string", id=None),
+            }
+        ],
+        "premises_formalized": [
+            {
+                "form": Value(dtype="string", id=None),
+                "ref_reco": Value(dtype="int64", id=None),
+            }
+        ],
+        "reasons": [
+            {
+                "ref_reco": Value(dtype="int64", id=None),
+                "starts_at": Value(dtype="int64", id=None),
+                "text": Value(dtype="string", id=None),
+            }
+        ],
+        "source_paraphrase": Value(dtype="string", id=None),
+        "source_text": Value(dtype="string", id=None),
+        "title": Value(dtype="string", id=None),
+    }
+)
 
 
 @dataclasses.dataclass
@@ -81,7 +171,7 @@ class ArgdownStatement(DeepA2BaseItem):
     """dataclass representing argdown statement in da2item"""
 
     text: Optional[str] = ""
-    explicit: Any = ""
+    explicit: Optional[bool] = None
     ref_reco: int = -1
 
 

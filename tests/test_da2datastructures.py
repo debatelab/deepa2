@@ -36,6 +36,13 @@ def test_from_batch():
     assert da2_item2 == da2_item
 
 
+def test_none_fields():
+    """test none fields"""
+    source_text = "source_text"
+    da2_item = DeepA2Item(source_text=source_text)
+    assert da2_item.reasons is None
+
+
 def test_keys_to_features():
     """features in angle map exist"""
     da2_features = [field.name for field in dataclasses.fields(DeepA2Item())]
