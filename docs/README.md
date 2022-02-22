@@ -38,13 +38,20 @@ Options:
 A `configuration file` may look like:
 
 ```yml
-sources:                # we load two datasets:
--   path: "./data/processed/esnli"
-    revision: "main"    # tag used to pick version from HF hub
--   path: "./data/processed/enbank/task_2"
-    revision: "main"
+sources:
+-   path: "prjct/data"  # a local dir or a dataset at hf hub 
+    data_files:         # all files relative to path 
+        train:          # these files go in train split
+        -   "enbank/task_1/train/train.parquet"
+        -   "moral-maze/train/train.parquet"
+        validation:     # these files go in validation split
+        -   "enbank/task_1/validation/validation.parquet"
+        -   "moral-maze/validation/validation.parquet"
+        test:           # these files go in test split
+        -   "enbank/task_1/test/test.parquet"
+        -   "moral-maze/test/test.parquet"
+export_format: "csv"
 export_path: "data/tmp" 
-export_format: "csv" 
 generative_modes:       # list of modes used to construct t2t items 
 -   name: "s+r => a"    # fully specified mode:
     target: "argdown_reconstruction"
