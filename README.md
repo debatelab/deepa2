@@ -5,8 +5,8 @@
     <a href="https://github.com/debatelab/deepa2/actions/workflows/code_quality_checks.yml">
         <img alt="code quality" src="https://github.com/debatelab/deepa2-datasets/actions/workflows/code_quality_checks.yml/badge.svg?branch=main">
     </a>
-    <a href="https://badge.fury.io/py/deepa2">
-        <img src="https://badge.fury.io/py/deepa2.svg" alt="PyPI version">
+    <a href="https://pypi.org/project/deepa2/">
+        <img src="https://img.shields.io/pypi/v/deepa2" alt="PyPI version">
     </a>    
 </p>
 
