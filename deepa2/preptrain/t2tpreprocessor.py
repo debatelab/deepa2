@@ -9,6 +9,7 @@ from typing import Dict, Any, List
 import datasets
 
 from deepa2 import DeepA2Item, DeepA2Layouter, GenerativeMode
+import deepa2
 
 
 class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
@@ -99,7 +100,9 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
 
         for source in self._sources:
             logging.info("Loading dataset dict from source: %s", source)
-            da2_dataset = datasets.load_dataset(**source)
+            kwargs = source
+            kwargs["features"] = deepa2.DA2_FEATURES
+            da2_dataset = datasets.load_dataset(**kwargs)
             if isinstance(da2_dataset, datasets.DatasetDict):
                 logging.info("Processing dataset dict %s", da2_dataset)
                 for key, split in da2_dataset.items():
@@ -117,7 +120,10 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
 
         # Save to disk
         dataset = datasets.DatasetDict(
-            {k: datasets.concatenate_datasets(v) for k, v in t2t_datasets.items()}
+            {
+                k: datasets.concatenate_datasets(v).shuffle()
+                for k, v in t2t_datasets.items()
+            }
         )
 
         def save_dataset(dataset: datasets.Dataset, path: Path) -> None:
