@@ -88,6 +88,17 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
 
         return t2t_item
 
+    def _save_dataset(self, dataset: datasets.Dataset, path: Path) -> None:
+        """saves the dataset in format given by `self._export_format`"""
+        if self._export_format == "parquet":
+            dataset.to_parquet(path)
+        elif self._export_format == "csv":
+            dataset.to_csv(path)
+        elif self._export_format == "jsonl":
+            dataset.to_json(path, orient="records", lines=True)
+        else:
+            logging.warning("Unknown format: {self._export_format}, dataset not saved.")
+
     def transform(self) -> None:
         """transforms sources"""
 
@@ -102,7 +113,11 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
             logging.info("Loading dataset dict from source: %s", source)
             kwargs = source
             kwargs["features"] = deepa2.DA2_FEATURES
-            da2_dataset = datasets.load_dataset(**kwargs)
+            try:
+                da2_dataset = datasets.load_dataset(**kwargs)
+            except KeyError:
+                kwargs["features"].pop("metadata", None)
+                da2_dataset = datasets.load_dataset(**kwargs)
             if isinstance(da2_dataset, datasets.DatasetDict):
                 logging.info("Processing dataset dict %s", da2_dataset)
                 for key, split in da2_dataset.items():
@@ -126,19 +141,6 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
             }
         )
 
-        def save_dataset(dataset: datasets.Dataset, path: Path) -> None:
-            """saves the dataset in format given by `self._export_format`"""
-            if self._export_format == "parquet":
-                dataset.to_parquet(path)
-            elif self._export_format == "csv":
-                dataset.to_csv(path)
-            elif self._export_format == "jsonl":
-                dataset.to_json(path, orient="records", lines=True)
-            else:
-                logging.warning(
-                    "Unknown format: {self._export_format}, dataset not saved."
-                )
-
         if self._export_path:
             path = Path(
                 self._export_path,
@@ -152,7 +154,7 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
                 for key, split in dataset.items():
                     logging.info("Saving processed t2t split %s ...", key)
                     file_name = f"{key}.{self._export_format}"
-                    save_dataset(split, path / file_name)
+                    self._save_dataset(split, path / file_name)
             logging.info("Saved t2t dataset to %s.", path)
         else:
             logging.warning("No export path, t2t dataset is not saved.")
