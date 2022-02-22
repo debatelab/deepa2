@@ -11,7 +11,7 @@ homepage = "https://github.com/debatelab/deepa2"
 deepa2 = "deepa2.main:app"
 
 [tool.poetry.dependencies]
-python = "^3.8"
+python = "^3.7"
 pandas = "^1.4.0"
 numpy = "^1.22.1"
 typer = {extras = ["all"], version = "^0.4.0"}
