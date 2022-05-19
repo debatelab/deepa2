@@ -118,13 +118,13 @@ class ArgumentStatement:
         is_conclusion: bool - whether the statement is a conclusion
         uses: List[int] - the ids of the statements the statement is inferred from
         inference_info: str - information about the inference (not parsed)
-        schemes: List[str] - the schemes used to infer the statement 
+        schemes: List[str] - the schemes used to infer the statement
         variants: List[str] - the variants of the schemes used to infer the statement
     """
 
     text: Optional[str] = None
     is_conclusion: bool = False
-    label: Optional[int]  = None
+    label: Optional[int] = None
     uses: Optional[List[int]] = None
     inference_info: Optional[str] = None
     schemes: Optional[List[str]] = None
@@ -141,107 +141,119 @@ class Argument:
 class DeepA2Parser:
     """parses text as DeepA2Items"""
 
-    def parse_argdown(self, text: str) -> Optional[Argument]:
+    @staticmethod
+    def parse_argdown(text: str) -> Optional[Argument]:
         """parses argdown text as Argument"""
         parser = ArgdownParser()
-        statements=parser.parse_argdown_block(text)
+        statements = parser.parse_argdown_block(text)
         if not statements:
             return None
-        argument = Argument(
-            statements=statements            
-        )
+        argument = Argument(statements=statements)
         return argument
 
-    def parse_list(self, text: str):
+    @staticmethod
+    def parse_list(text: str):
         """parses list of statements"""
-        pass
 
-    def parse_formalization(self, text: str):
+    @staticmethod
+    def parse_formalization(text: str):
         """parses formalizations"""
-        pass
 
-    def parse_keys(self, text: str):
+    @staticmethod
+    def parse_keys(text: str):
         """parses keys of formalization"""
-        pass
+
 
 class ArgdownParser:
     """parses text as Argdown"""
 
-    INFERENCE_PATTERN_REGEX = r" ---- | -- with (?<scheme>[^\(\)]*)(?<variant> \([^-\(\))]*\))? from (?<uses>[\(\), 0-9]+) -- | -- (?<info>[^-]*) -- "
+    INFERENCE_PATTERN_REGEX = (
+        r" ---- |"
+        r" -- with (?P<scheme>[^\(\)]*)(?P<variant> \([^-\(\))]*\))?"
+        r" from (?P<uses>[\(\), 0-9]+) -- |"
+        r" -- (?P<info>[^-]*) -- "
+    )
 
-    def preprocess_ad(self, ad_raw:str) -> str:
+    @staticmethod
+    def preprocess_ad(ad_raw: str) -> str:
         """preprocess argdown text"""
-        ad_raw = ad_raw.replace("\n"," ")
-        ad_raw = ad_raw.replace("  "," ")
-        ad_raw = ad_raw.replace("with?? ","with ?? ")        
+        ad_raw = ad_raw.replace("\n", " ")
+        ad_raw = ad_raw.replace("  ", " ")
+        ad_raw = ad_raw.replace("with?? ", "with ?? ")
         return ad_raw
 
-    def parse_argdown_block(self, ad_raw:str) -> List(ArgumentStatement):
+    def parse_argdown_block(self, ad_raw: str) -> Optional[List[ArgumentStatement]]:
         """parses argdown block"""
         # preprocess
         ad_raw = self.preprocess_ad(ad_raw)
         regex = self.INFERENCE_PATTERN_REGEX
 
-        argument_statements: List(ArgumentStatement) = []
+        argument_statements = []
 
         # find all inferences
         matches = re.finditer(regex, ad_raw, re.MULTILINE)
 
-        inf_args = {}
+        inf_args: Dict[str, Any] = {}
         pointer = 0
         # iterate over inferences
-        for match in matches:   
+        for match in matches:
             # parse all propositions before inference matched that have not been parsed before
-            new_statements = self.parse_proposition_block(ad_raw[pointer:match.start()],**inf_args)
+            new_statements = self.parse_proposition_block(
+                ad_raw[pointer : match.start()], **inf_args
+            )
             if not new_statements:
                 # if failed to parse proposition block return None
                 return None
             argument_statements.extend(new_statements)
             # update pointer and inf_args to be used for parsing next propositions block
             pointer = match.end()
-            inf_args = {    
-                'schemes': re.split('; |, | and ',match.group("scheme")),
-                'variants': re.split('; |, | and ',match.group("variant")),
-                'uses': self.parse_uses(match.group("uses")),
-                'inference_info': match.group(0).strip("- ")
+            schemes = match.group("scheme")
+            variants = match.group("variant")
+            inference_info = match.group(0)
+            inf_args = {
+                "schemes": re.split("; |, | and ", schemes) if schemes else None,
+                "variants": re.split("; |, | and ", variants) if variants else None,
+                "uses": self.parse_uses(match.group("uses")),
+                "inference_info": inference_info.strip("- ")
+                if inference_info
+                else None,
             }
         # parse remaining propositions
         if pointer > 0:
-            new_statements = self.parse_proposition_block(ad_raw[pointer:],inf_args=inf_args)
+            new_statements = self.parse_proposition_block(ad_raw[pointer:], **inf_args)
             argument_statements.extend(new_statements)
 
         return argument_statements
 
-
-    def parse_proposition_block(self,ad_raw:str,**inf_args) -> List[ArgdownStatement]:
+    @staticmethod
+    def parse_proposition_block(ad_raw: str, **inf_args) -> List[ArgumentStatement]:
         """parses proposition block"""
-        statement_list = []
+        statement_list: List[ArgumentStatement] = []
         if not ad_raw:
             return statement_list
         # preprocess
-        if ad_raw[0]!=" ":
-            ad_raw = " "+ad_raw
+        if ad_raw[0] != " ":
+            ad_raw = " " + ad_raw
         # match labels
-        regex = r" \(([0-9]*)\) " 
-        if not re.match(regex,ad_raw):
+        regex = r" \(([0-9]*)\) "
+        if not re.match(regex, ad_raw):
             return statement_list
-        matches = re.finditer(regex, ad_raw, re.MULTILINE) 
+        matches = re.finditer(regex, ad_raw, re.MULTILINE)
         label = -1
         pointer = -1
         # iterate over matched labels
         for match in matches:
-            # for matched label, we're adding the previous statement    
-            if label>-1:
+            # for matched label, we're adding the previous statement
+            if label > -1:
                 statement = ArgumentStatement(
-                    text = ad_raw[pointer:match.start()].strip(),
-                    label = label
+                    text=ad_raw[pointer : match.start()].strip(), label=label
                 )
                 statement_list.append(statement)
-            label = int(match.group(1)) # update label
-            pointer = match.end() # update pointer
-        if label>-1:
+            label = int(match.group(1))  # update label
+            pointer = match.end()  # update pointer
+        if label > -1:
             # add last statement
-            statement = ArgumentStatement(text=ad_raw[pointer:].strip() ,label=label)
+            statement = ArgumentStatement(text=ad_raw[pointer:].strip(), label=label)
             statement_list.append(statement)
         if statement_list and "uses" in inf_args:
             # update first statement with inference details
@@ -252,9 +264,8 @@ class ArgdownParser:
 
         return statement_list
 
-
-                
-    def parse_uses(self, uses_raw) -> List[int]:
+    @staticmethod
+    def parse_uses(uses_raw) -> List[int]:
         """parses list of labels used in an inference"""
         if not uses_raw:
             return []

@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-import pandas
 from typing import Any, Optional, List, Dict
 
+import pandas
+
 from deepa2 import DeepA2Parser
+
 
 class DA2MetricHandler(ABC):
     """
@@ -15,11 +17,11 @@ class DA2MetricHandler(ABC):
 
     @abstractmethod
     def set_next(self, handler: DA2MetricHandler) -> DA2MetricHandler:
-        pass
+        """set next handler"""
 
     @abstractmethod
     def handle(self, prediction: str, reference: str) -> Optional[Dict]:
-        pass
+        """handle request"""
 
 
 class AbstractDA2MetricHandler(DA2MetricHandler):
@@ -49,52 +51,55 @@ class AbstractDA2MetricHandler(DA2MetricHandler):
         return None
 
 
-"""
-All Concrete DA2 Metric Handlers either handle a request or pass it 
-to the next handler in the chain.
-"""
+# All Concrete DA2 Metric Handlers either handle a request or pass it
+# to the next handler in the chain.
 
 
 class ArgdownHandler(AbstractDA2MetricHandler):
+    """handles argument reconstructions"""
+
     def handle(self, prediction: str, reference: str) -> Optional[Dict]:
         ref_as_argdown = self._da2_parser.parse_argdown(reference)
         if ref_as_argdown:
             # reference is argdown
-            score: Dict[str,Any] = {}
+            score: Dict[str, Any] = {}
             return score
-        else:
-            return super().handle(prediction, reference)
+        return super().handle(prediction, reference)
 
 
 class StatementHandler(AbstractDA2MetricHandler):
+    """handles statement list predictions"""
+
     def handle(self, prediction: str, reference: str) -> Optional[Dict]:
         is_statement_list = False
         if is_statement_list:
-            score: Dict[str,Any] = {}
+            score: Dict[str, Any] = {}
             return score
-        else:
-            return super().handle(prediction, reference)
+        return super().handle(prediction, reference)
 
 
 class FormalizationHandler(AbstractDA2MetricHandler):
+    """handles formalization predictions"""
+
     def handle(self, prediction: str, reference: str) -> Optional[Dict]:
         is_formalization_list = False
         if is_formalization_list:
-            score: Dict[str,Any] = {}
+            score: Dict[str, Any] = {}
             return score
-        else:
-            return super().handle(prediction, reference)
+        return super().handle(prediction, reference)
 
 
-class DA2PredictionEvaluator:
+class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
+    """evaluates a list of predictions and references"""
 
     def __init__(self) -> None:
         self.argdown_evaluator = ArgdownHandler()
         self.statement_evaluator = StatementHandler()
         self.formalization_evaluator = FormalizationHandler()
 
-        self.argdown_evaluator.set_next(self.statement_evaluator).set_next(self.formalization_evaluator)
-
+        self.argdown_evaluator.set_next(self.statement_evaluator).set_next(
+            self.formalization_evaluator
+        )
 
     def compute_metrics(self, predictions: List[str], references: List[str]):
         """
@@ -107,11 +112,10 @@ class DA2PredictionEvaluator:
 
         scores = []
         for pred, ref in zip(predictions, references):
-            score = self.argdown_evaluator.handle(pred,ref)
+            score = self.argdown_evaluator.handle(pred, ref)
             scores.append(score)
 
         # aggregate scores
-        df = pandas.DataFrame.from_records(scores)
+        df_scores = pandas.DataFrame.from_records(scores)
 
-        return df.mean(axis=0).to_dict()
-
+        return df_scores.mean(axis=0).to_dict()
