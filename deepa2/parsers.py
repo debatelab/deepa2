@@ -178,7 +178,7 @@ class ArgdownParser:
     def preprocess_ad(ad_raw: str) -> str:
         """preprocess argdown text"""
         ad_raw = ad_raw.replace("\n", " ")
-        ad_raw = ad_raw.replace("  ", " ")
+        ad_raw = re.sub(r"\s{2,}", " ", ad_raw)
         ad_raw = ad_raw.replace("with?? ", "with ?? ")
         return ad_raw
 
