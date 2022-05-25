@@ -73,6 +73,8 @@ class ArgdownHandler(AbstractDA2MetricHandler):
             "valid_argdown": self.valid_argdown(parsed_pred),
             "pc_structure": self.pc_structure(parsed_pred),
             "consistent_usage": self.consistent_usage(parsed_pred),
+            "no_petitio": self.no_petitio(parsed_pred),
+            "no_redundancy": self.no_redundancy(parsed_pred),
             "inferential_similarity": self.inferential_similarity(
                 parsed_pred, parsed_ref
             ),
@@ -86,42 +88,79 @@ class ArgdownHandler(AbstractDA2MetricHandler):
         return 1 if parsed_pred else 0
 
     @staticmethod
-    def pc_structure(parsed_pred: Optional[Argument]) -> int:
+    def pc_structure(parsed_pred: Optional[Argument]) -> Optional[int]:
         """checks if a reconstruction has premises and conclusion"""
-        if parsed_pred:
-            has_pc_structure = (
-                not parsed_pred.statements[0].is_conclusion
-            ) and parsed_pred.statements[-1].is_conclusion
-        else:
-            has_pc_structure = False
+        if parsed_pred is None:
+            return None
+
+        has_pc_structure = (
+            not parsed_pred.statements[0].is_conclusion
+        ) and parsed_pred.statements[-1].is_conclusion
 
         return int(has_pc_structure)
 
     @staticmethod
-    def consistent_usage(parsed_pred: Optional[Argument]) -> int:
+    def consistent_usage(parsed_pred: Optional[Argument]) -> Optional[int]:
         """checks if info about used statements is consistent"""
 
-        if parsed_pred:
-            used_exist = True  # does every statement referred to in inference exist?
-            used_statements = []
-            for statement in parsed_pred.statements:
-                if statement.uses and statement.label:
-                    if any(u >= statement.label for u in statement.uses):
-                        used_exist = False
-                        break
-                    used_statements.extend(statement.uses)
-            # is every statement (except final one) explicitly referred to in some inference?
-            evryth_used = len(set(used_statements)) == (len(parsed_pred.statements) - 1)
-            has_consistent_usage = used_exist and evryth_used
-        else:
-            has_consistent_usage = False
+        if parsed_pred is None:
+            return None
+
+        used_exist = True  # does every statement referred to in inference exist?
+        used_statements = []
+        for statement in parsed_pred.statements:
+            if statement.uses and statement.label:
+                if any(u >= statement.label for u in statement.uses):
+                    used_exist = False
+                    break
+                used_statements.extend(statement.uses)
+        # is every statement (except final one) explicitly referred to in some inference?
+        evryth_used = len(set(used_statements)) == (len(parsed_pred.statements) - 1)
+        has_consistent_usage = used_exist and evryth_used
 
         return int(has_consistent_usage)
 
     @staticmethod
+    def no_petitio(parsed_pred: Optional[Argument]) -> Optional[int]:
+        """checks if a reconstruction is no petitio
+        i.e. no conclusion is a premise,
+        petitio is a special case of redundancy"""
+
+        if parsed_pred is None:
+            return None
+
+        no_petitio = True
+        visited_texts = []
+        for statement in parsed_pred.statements:
+            if statement.text:
+                if statement.is_conclusion:
+                    # check if conclusion has been introduced as premise before
+                    if statement.text.strip() in visited_texts:
+                        no_petitio = False
+                        break
+                else:
+                    visited_texts.append(statement.text.strip())
+
+        return int(no_petitio)
+
+    @staticmethod
+    def no_redundancy(parsed_pred: Optional[Argument]) -> Optional[int]:
+        """checks if a reconstruction is redundant
+        i.e. no statements has been introduced before"""
+
+        if parsed_pred is None:
+            return None
+
+        statement_texts = [s.text.strip() for s in parsed_pred.statements if s.text]
+
+        no_redundancy = len(statement_texts) == len(set(statement_texts))
+
+        return int(no_redundancy)
+
+    @staticmethod
     def inferential_similarity(
         parsed_pred: Optional[Argument], parsed_ref: Optional[Argument]
-    ) -> float:
+    ) -> Optional[float]:
         """checks if predicted and target argument are inferentially similar"""
 
         if parsed_pred and parsed_ref:
@@ -130,11 +169,11 @@ class ArgdownHandler(AbstractDA2MetricHandler):
             n_pr = len(list(s for s in parsed_ref.statements if not s.is_conclusion))
             n_cp = len(list(s for s in parsed_pred.statements if s.is_conclusion))
             n_cr = len(list(s for s in parsed_ref.statements if s.is_conclusion))
-            inf_sim = (1 - (n_pp - n_pr) / (n_pp + n_pr)) * (
-                1 - (n_cp - n_cr) / (n_cp + n_cr)
+            inf_sim = (1 - abs(n_pp - n_pr) / (n_pp + n_pr)) * (
+                1 - abs(n_cp - n_cr) / (n_cp + n_cr)
             )
         else:
-            inf_sim = 0
+            inf_sim = None
 
         return inf_sim
 
@@ -173,6 +212,15 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
             self.formalization_evaluator
         )
 
+        self._scores: List[Optional[Dict[str, Any]]] = []
+
+    @property
+    def scores(self) -> List[Optional[Dict[str, Any]]]:
+        """
+        The latest individual scores calculated by the evaluator.
+        """
+        return self._scores
+
     def compute_metrics(self, predictions: List[str], references: List[str]):
         """
         compute da2 metrics of predictions given references
@@ -182,6 +230,9 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
         references: list of reference for each prediction.
         """
 
+        if len(predictions) != len(references):
+            raise ValueError("Number of predictions and references must be the same.")
+
         scores = []
         for pred, ref in zip(predictions, references):
             score = self.argdown_evaluator.handle(pred, ref)
@@ -190,4 +241,8 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
         # aggregate scores
         df_scores = pandas.DataFrame.from_records(scores)
 
+        # shelve individual scores
+        self._scores = scores
+
+        # return aggregate scores
         return df_scores.mean(axis=0).to_dict()

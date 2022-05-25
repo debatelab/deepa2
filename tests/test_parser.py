@@ -27,6 +27,27 @@ def fixture_argdown_examples():
         ----
         (7) conclusion
         """,
+        """
+        -- with mp from (1) --
+        (2) i-conclusion 1
+        (3) premise 2
+        -- from (1) --
+        (4) i-conclusion 2
+        (5) premise 3
+        (6) premise 4
+        ----
+        (7) conclusion
+        """,
+        """
+        (1) premise 1
+        -- with mp from (1) --
+        (2) i-conclusion 1
+        (3) premise 2
+        -- from (1) --
+        (4) i-conclusion 2
+        (5) premise 3
+        (6) premise 4
+        """,
     ]
     return examples
 
@@ -128,3 +149,17 @@ def test_example_3(parsed_arguments):
     )
     print(argument)
     assert argument == reference
+
+
+def test_example_4(parsed_arguments):
+    """test second argument"""
+    argument: Argument = parsed_arguments[3]
+    print(argument)
+    assert argument is None
+
+
+def test_example_5(parsed_arguments):
+    """test second argument"""
+    argument: Argument = parsed_arguments[4]
+    print(argument)
+    assert not argument.statements[-1].is_conclusion
