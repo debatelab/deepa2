@@ -5,6 +5,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import random
+import re
 from typing import List, Dict, Union
 import uuid
 
@@ -450,11 +451,17 @@ class ESNLIBuilder(Builder):
         # premises
         record.premises_formalized = []
         for i in range(2):
-            formalization = Formalization(form=config.formal_scheme[i], ref_reco=i + 1)
+            form = re.sub(r"{|}", "", config.formal_scheme[i])  # remove brackets
+            form = form.replace("¬", " not ")  # replace negator
+            form = form.replace("  ", " ")
+            formalization = Formalization(form=form, ref_reco=i + 1)
             record.premises_formalized.append(formalization)
         # conclusion
         i = 2
-        formalization = Formalization(form=config.formal_scheme[i], ref_reco=i + 1)
+        form = re.sub(r"{|}", "", config.formal_scheme[i])
+        form = form.replace("¬", " not ")  # replace negator
+        form = form.replace("  ", " ")
+        formalization = Formalization(form=form, ref_reco=i + 1)
         record.conclusion_formalized = [formalization]
         # placeholders
         record.misc_placeholders = [k for k, _ in config.placeholders.items()]

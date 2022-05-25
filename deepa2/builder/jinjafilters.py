@@ -4,6 +4,7 @@ import random
 
 templates_conditional = [
     "if {antecent} then {consequent}.",
+    "if {antecent} then {consequent}.",
     "presuming that {antecent}, {consequent}.",
     "{consequent} if {antecent}.",
     "{consequent} provided that {antecent}.",
