@@ -78,7 +78,7 @@ def fixture_examples():
 
 
 def test_evaluator(examples):
-    """test globael metrics"""
+    """test global metrics"""
 
     scorer = DA2PredictionEvaluator()
     predictions, references = examples
