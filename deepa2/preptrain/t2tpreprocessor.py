@@ -82,7 +82,7 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
                 + input_words[pos : pos + self._MAX_MASK_LENGTH]
                 + [self._END_MASK_TOKEN]
             )
-            substitution += " ".join(substitution_w)
+            substitution = " ".join(substitution_w)
 
         return masked_input, substitution
 
