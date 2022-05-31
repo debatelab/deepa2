@@ -116,7 +116,8 @@ def test_masking():
 
     assert (
         t2t_item["target"][0]
-        == "conjectures-1234 (ref: (3)) <extra_id_1> reasons-1234 (ref: (1)) | reasons-1234 (ref: (2)) <extra_id_2>"
+        == "conjectures-1234 (ref: (3)) <extra_id_1> reasons-1234 "
+        "(ref: (1)) | reasons-1234 (ref: (2)) <extra_id_2>"
     )
     assert (
         t2t_item["text"][0] == "conjectures: source_text: source_text-1234 "

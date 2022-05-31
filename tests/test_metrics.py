@@ -102,7 +102,7 @@ def test_evaluator(examples):
     assert scorer.scores[-1]["inferential_similarity"] == 1
 
 
-def test_evaluator_no_arg(examples):
+def test_evaluator_no_arg():
     """test global metrics"""
 
     scorer = DA2PredictionEvaluator()

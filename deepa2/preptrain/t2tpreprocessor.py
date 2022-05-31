@@ -59,7 +59,7 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
                 logging.error("Target of mode not a DeepA2 field: %s", mode)
                 raise ValueError(f"Target of mode not a DeepA2 field: {mode}.")
 
-    def mask_input(self, input_raw: str) -> Tuple[str]:
+    def mask_input(self, input_raw: str) -> Tuple[str, str]:
         """masks a single input string, return masked_input and substitution"""
         input_words = input_raw.split()
 
@@ -71,18 +71,18 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
         else:
             # choose a random position in input
             pos = self._random.randint(0, len(input_words) - self._MAX_MASK_LENGTH)
-            masked_input = (
+            masked_input_w = (
                 input_words[0:pos]
                 + [self._MASK_TOKEN]
                 + input_words[pos + self._MAX_MASK_LENGTH :]
             )
-            masked_input = " ".join(masked_input)
-            substitution = (
+            masked_input = " ".join(masked_input_w)
+            substitution_w = (
                 [self._MASK_TOKEN]
                 + input_words[pos : pos + self._MAX_MASK_LENGTH]
                 + [self._END_MASK_TOKEN]
             )
-            substitution += " ".join(substitution)
+            substitution += " ".join(substitution_w)
 
         return masked_input, substitution
 

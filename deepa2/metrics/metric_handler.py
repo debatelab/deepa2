@@ -238,7 +238,6 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
             score = self.argdown_evaluator.handle(pred, ref)
             scores.append(score)
 
-
         # aggregate scores
         if scores:
             # remove None scores
