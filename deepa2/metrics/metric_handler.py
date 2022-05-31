@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
-from typing import Any, Optional, List, Dict
+from typing import Any, Optional, List, Dict, Sequence
 
 import pandas
+import sacrebleu as scb
 
 from deepa2 import DeepA2Parser
 from deepa2.parsers import Argument
@@ -212,10 +213,10 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
             self.formalization_evaluator
         )
 
-        self._scores: List[Optional[Dict[str, Any]]] = []
+        self._scores: Sequence[Optional[Dict[str, Any]]] = []
 
     @property
-    def scores(self) -> List[Optional[Dict[str, Any]]]:
+    def scores(self) -> Sequence[Optional[Dict[str, Any]]]:
         """
         The latest individual scores calculated by the evaluator.
         """
@@ -234,14 +235,18 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
             raise ValueError("Number of predictions and references must be the same.")
 
         scores = []
+        prds_unprocessed = []
+        refs_unprocessed = []
         for pred, ref in zip(predictions, references):
             score = self.argdown_evaluator.handle(pred, ref)
-            scores.append(score)
+            if score:
+                scores.append(score)
+            else:
+                prds_unprocessed.append(pred)
+                refs_unprocessed.append(ref)
 
         # aggregate scores
         if scores:
-            # remove None scores
-            scores = [s for s in scores if s is not None]
             df_scores = pandas.DataFrame.from_records(scores)
         else:
             df_scores = pandas.DataFrame()
@@ -249,5 +254,19 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
         # shelve individual scores
         self._scores = scores
 
+        # average over da2 scores
+        output_dict = df_scores.mean(axis=0).to_dict()  # type: ignore
+
+        # process remaining predictions
+        if prds_unprocessed:
+            transformed_refs_unprocessed = [[refs] for refs in refs_unprocessed]
+            scb_output = scb.corpus_bleu(
+                prds_unprocessed,
+                transformed_refs_unprocessed,
+                lowercase=True,
+            )
+
+            output_dict["bleu-score"] = scb_output.score  # type: ignore
+
         # return aggregate scores
-        return df_scores.mean(axis=0).to_dict()
+        return output_dict

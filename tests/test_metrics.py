@@ -111,4 +111,25 @@ def test_evaluator_no_arg():
 
     metrics = scorer.compute_metrics(predictions, references)
 
-    assert metrics == {}
+    assert "bleu-score" in metrics
+    assert round(metrics["bleu-score"]) == 100
+
+
+def test_evaluator_mixed():
+    """test global metrics"""
+
+    scorer = DA2PredictionEvaluator()
+    predictions = [
+        "is a reason (ref: (1))",
+        "(1) Premise 1 -- with mp from (1) -- (2) i-conclusion 1",
+    ]
+    references = [
+        "is a reason (ref: (1))",
+        "(1) Premise 1 -- with mp from (1) -- (2) i-conclusion 1",
+    ]
+
+    metrics = scorer.compute_metrics(predictions, references)
+
+    assert "bleu-score" in metrics
+    assert round(metrics["bleu-score"]) == 100
+    assert metrics.get("valid_argdown") == 1
