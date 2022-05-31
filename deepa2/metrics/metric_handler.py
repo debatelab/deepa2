@@ -238,8 +238,14 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
             score = self.argdown_evaluator.handle(pred, ref)
             scores.append(score)
 
+
         # aggregate scores
-        df_scores = pandas.DataFrame.from_records(scores)
+        if scores:
+            # remove None scores
+            scores = [s for s in scores if s is not None]
+            df_scores = pandas.DataFrame.from_records(scores)
+        else:
+            df_scores = pandas.DataFrame()
 
         # shelve individual scores
         self._scores = scores

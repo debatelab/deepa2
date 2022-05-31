@@ -100,3 +100,15 @@ def test_evaluator(examples):
     assert scorer.scores[0]["valid_argdown"] == 0
 
     assert scorer.scores[-1]["inferential_similarity"] == 1
+
+
+def test_evaluator_no_arg(examples):
+    """test global metrics"""
+
+    scorer = DA2PredictionEvaluator()
+    predictions = ["is a reason (ref: (1))"]
+    references = ["is a reason (ref: (1))"]
+
+    metrics = scorer.compute_metrics(predictions, references)
+
+    assert metrics == {}
