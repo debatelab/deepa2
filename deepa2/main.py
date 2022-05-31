@@ -145,6 +145,9 @@ def serve(  # pylint: disable=too-many-arguments
     target_column_name: Optional[str] = typer.Option(
         "target", help="name of target column of t2t dataset"
     ),
+    mask_probability: Optional[float] = typer.Option(
+        None, help="probability that an input sequence will be masked"
+    ),
     configfile: Optional[str] = typer.Option(
         None,
         help="path to yml configuration while; commandline "
@@ -174,6 +177,8 @@ def serve(  # pylint: disable=too-many-arguments
         config["export_path"] = export_path
     if export_format:
         config["export_format"] = export_format
+    if mask_probability:
+        config["mask_probability"] = mask_probability
     config["input_column_name"] = input_column_name
     config["target_column_name"] = target_column_name
 
@@ -186,6 +191,10 @@ def serve(  # pylint: disable=too-many-arguments
     if "export_path" not in config:
         typer.echo("No export path specified, defaulting to ./exported.")
         config["export_path"] = "exported"
+
+    if "mask_probability" not in config:
+        typer.echo("No mask_probability specified, defaulting to 0.")
+        config["mask_probability"] = 0.0
 
     if "export_format" not in config:
         typer.echo("No export format specified, saving datasetdict as arrow tables.")
