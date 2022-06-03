@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "deepa2"
-version = "0.1.9"
+version = "0.1.10"
 description = "Cast NLP data as multiangular DeepA2 datasets and integrate these in training pipeline"
 authors = ["Gregor Betz <gregor.betz@kit.edu>"]
 license = "Apache-2.0"
