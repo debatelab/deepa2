@@ -234,6 +234,10 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
         if len(predictions) != len(references):
             raise ValueError("Number of predictions and references must be the same.")
 
+        # replace None with blank string
+        predictions = [p if p else "" for p in predictions]
+        references = [r if r else "" for r in references]
+
         scores = []
         prds_unprocessed = []
         refs_unprocessed = []
@@ -256,6 +260,10 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
 
         # average over da2 scores
         output_dict = df_scores.mean(axis=0).to_dict()  # type: ignore
+
+        # replace blank string with white space char
+        prds_unprocessed = [p if p else " " for p in prds_unprocessed]
+        refs_unprocessed = [r if r else " " for r in refs_unprocessed]
 
         # process remaining predictions
         if prds_unprocessed:

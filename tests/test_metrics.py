@@ -129,14 +129,20 @@ def test_evaluator_mixed():
     predictions = [
         "is a reason (ref: (1))",
         "(1) Premise 1 -- with mp from (1) -- (2) i-conclusion 1",
+        "four items too many",
+        "four items too many",
+        None,
     ]
     references = [
         "is a reason (ref: (1))",
         "(1) Premise 1 -- with mp from (1) -- (2) i-conclusion 1",
+        None,
+        None,
+        "four items too few",
     ]
 
     metrics = scorer.compute_metrics(predictions, references)
 
     assert "bleu-score" in metrics
-    assert round(metrics["bleu-score"]) == 100
+    assert round(metrics["bleu-score"]) == 64
     assert metrics.get("valid_argdown") == 1
