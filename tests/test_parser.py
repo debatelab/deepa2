@@ -13,7 +13,7 @@ from deepa2.parsers import Argument, ArgumentStatement
 def fixture_argdown_examples():
     """argdown examples"""
     examples = [
-        """(1) premise ---- (2) conclusion""",
+        """(1) premise \n---- (2) conclusion""",
         """(1) premise -- with mp from (1) -- (2) conclusion""",
         """
         (1) premise 1
@@ -48,6 +48,17 @@ def fixture_argdown_examples():
         (5) premise 3
         (6) premise 4
         """,
+        "(1) If someone is a sufferer of allergy to mango, "
+        "then they are not a sufferer of allergy to sesame or "
+        "a sufferer of allergy to carrot. (2) If someone is "
+        "allergic to carrot, then they aren't allergic to mango. -- "
+        "with generalized dilemma [negation variant, transposition] "
+        "from (1) (2) -- (3) If someone is allergic to mango, then "
+        "they aren't allergic to sesame. (4) If someone isn't "
+        "allergic to sesame, then they are allergic to turkey. -- "
+        "with hypothetical syllogism [negation variant] from (3) (4) "
+        "-- (5) If someone is allergic to mango, then they are "
+        "allergic to turkey.",
     ]
     return examples
 
@@ -163,3 +174,10 @@ def test_example_5(parsed_arguments):
     argument: Argument = parsed_arguments[4]
     print(argument)
     assert not argument.statements[-1].is_conclusion
+
+
+def test_example_6(parsed_arguments):
+    """test second argument"""
+    argument: Argument = parsed_arguments[5]
+    print(argument)
+    assert len(argument.statements) == 5

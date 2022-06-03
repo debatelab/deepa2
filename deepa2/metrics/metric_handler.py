@@ -259,10 +259,9 @@ class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
 
         # process remaining predictions
         if prds_unprocessed:
-            transformed_refs_unprocessed = [[refs] for refs in refs_unprocessed]
             scb_output = scb.corpus_bleu(
                 prds_unprocessed,
-                transformed_refs_unprocessed,
+                [refs_unprocessed],
                 lowercase=True,
             )
 
