@@ -94,7 +94,9 @@ def test_evaluator(examples):
     assert metrics.get("no_redundancy") > 0
     assert metrics.get("no_petitio") < 1
     assert metrics.get("no_petitio") > 0
+    assert metrics.get("consistent_usage") == 0
     assert metrics.get("inferential_similarity") < 1
+    assert metrics.get("agg_ad_1") == 0
 
     assert scorer.scores[0]["no_redundancy"] is None
     assert scorer.scores[0]["valid_argdown"] == 0
@@ -146,3 +148,20 @@ def test_evaluator_mixed():
     assert "bleu-score" in metrics
     assert round(metrics["bleu-score"]) == 64
     assert metrics.get("valid_argdown") == 1
+
+
+def test_perfect_predictions():
+    """test perfect predictions"""
+
+    scorer = DA2PredictionEvaluator()
+    predictions = [
+        "(1) Premise 1 -- with mp from (1) -- (2) i-conclusion 1",
+        "(1) Premise 1 (2) Premise 2 -- with mp from (1) (2) -- (3) i-conclusion 1",
+    ]
+    references = predictions
+
+    metrics = scorer.compute_metrics(predictions, references)
+
+    for key, value in metrics.items():
+        print(f"{key}: {value}")
+        assert value == 1

@@ -68,7 +68,7 @@ class ArgdownHandler(AbstractDA2MetricHandler):
     def score(
         self, parsed_pred: Optional[Argument], parsed_ref: Optional[Argument]
     ) -> Dict[str, Any]:
-        """scores a reconstructed argument relative to a reference reconsctruction"""
+        """scores a reconstructed argument relative to a reference reconstruction"""
 
         score = {
             "valid_argdown": self.valid_argdown(parsed_pred),
@@ -80,7 +80,27 @@ class ArgdownHandler(AbstractDA2MetricHandler):
                 parsed_pred, parsed_ref
             ),
         }
+
+        score.update(self.compute_aggregates(score))
+
         return score
+
+    @staticmethod
+    def compute_aggregates(score: Dict[str, Any]) -> Dict[str, Any]:
+        """calculates aggregates"""
+
+        agg_scores = {}
+
+        agg_ad_1 = 0
+        if score.get("valid_argdown", 0):
+            agg_ad_1 = (
+                score["pc_structure"]
+                and score["consistent_usage"]
+                and score["no_redundancy"]
+            )
+        agg_scores["agg_ad_1"] = agg_ad_1
+
+        return agg_scores
 
     @staticmethod
     def valid_argdown(parsed_pred: Optional[Argument]) -> int:
