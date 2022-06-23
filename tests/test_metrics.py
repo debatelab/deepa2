@@ -157,6 +157,7 @@ def test_perfect_predictions():
     predictions = [
         "(1) Premise 1 -- with mp from (1) -- (2) i-conclusion 1",
         "(1) Premise 1 (2) Premise 2 -- with mp from (1) (2) -- (3) i-conclusion 1",
+        "(x): F x -> G x (ref: (2)) | (x)(y): F x -> (R x y v G y) (ref: (1))",
     ]
     references = predictions
 
@@ -165,3 +166,40 @@ def test_perfect_predictions():
     for key, value in metrics.items():
         print(f"{key}: {value}")
         assert value == 1
+
+
+def test_formalization1():
+    """test formalizations"""
+
+    scorer = DA2PredictionEvaluator()
+    references = [
+        "p v q (ref: (1))",
+        "(x): F x -> G x (ref: (2)) | (x)(y): F x -> (R x y v G y) (ref: (1))",
+    ]
+    predictions = [
+        "p v q (ref: 1)",
+        "(x): F x -> G x (ref: (2)) | (x)(y): F x -> (R x y v G y) (ref: (1))",
+    ]
+
+    metrics = scorer.compute_metrics(predictions, references)
+
+    for key, value in metrics.items():
+        print(f"{key}: {value}")
+        assert value == 0.5
+
+
+def test_formalization_sim():
+    """test formalizations"""
+
+    scorer = DA2PredictionEvaluator()
+    references = [
+        "p & q (ref: (1))",
+    ]
+    predictions = [
+        "p v q (ref: (2))",
+    ]
+
+    metrics = scorer.compute_metrics(predictions, references)
+    assert metrics["form_abstract_sim"] > 0.66666
+    assert metrics["form_abstract_sim"] < 0.66667
+    assert metrics["form_acc_refs"] == 0

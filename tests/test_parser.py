@@ -5,6 +5,7 @@ import pytest
 from deepa2 import (
     DeepA2Parser,
 )
+from deepa2.datastructures import Formalization
 
 from deepa2.parsers import Argument, ArgumentStatement
 
@@ -181,3 +182,22 @@ def test_example_6(parsed_arguments):
     argument: Argument = parsed_arguments[5]
     print(argument)
     assert len(argument.statements) == 5
+
+
+def test_formalizations1():
+    """test formalization"""
+    text = "(x): F x -> G x (ref: (2)) | (x)(y): F x -> (R x y v G y) (ref: (1))"
+    formalizations = DeepA2Parser.parse_formalization(text)
+    references = [
+        Formalization(form="(x): F x -> G x", ref_reco=2),
+        Formalization(form="(x)(y): F x -> (R x y v G y)", ref_reco=1),
+    ]
+    assert formalizations == references
+
+
+def test_formalizations2():
+    """test formalization"""
+    text = "(x): F x -> G x (REF: (2)) | (x)(y): F x -> (Rxy v G y) (ref: (1))"
+    formalizations = DeepA2Parser.parse_formalization(text)
+    references = [None, None]
+    assert formalizations == references

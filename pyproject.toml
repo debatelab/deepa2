@@ -22,6 +22,7 @@ requests = "^2.27.1"
 networkx = "^2.6.3"
 ttp = "^0.8.4"
 sacrebleu = "^2.1.0"
+editdistance = "^0.6.0"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.2.5"

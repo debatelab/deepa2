@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 from abc import ABC, abstractmethod
+import re
 from typing import Any, Optional, List, Dict, Sequence
 
+import editdistance  # type: ignore
+import numpy as np
 import pandas
 import sacrebleu as scb
 
-from deepa2 import DeepA2Parser
+from deepa2 import DeepA2Parser, Formalization
 from deepa2.parsers import Argument
 
 
@@ -214,11 +217,79 @@ class FormalizationHandler(AbstractDA2MetricHandler):
     """handles formalization predictions"""
 
     def handle(self, prediction: str, reference: str) -> Optional[Dict]:
-        is_formalization_list = False
-        if is_formalization_list:
-            score: Dict[str, Any] = {}
-            return score
+        ref_as_formulae = DeepA2Parser.parse_formalization(reference)
+        if ref_as_formulae:
+            if None not in ref_as_formulae:
+                # reference is formalization
+                pred_as_formulae = DeepA2Parser.parse_formalization(prediction)
+                score = self.score(pred_as_formulae, ref_as_formulae)
+                return score
         return super().handle(prediction, reference)
+
+    def score(
+        self,
+        pred_as_formulae: Optional[List[Optional[Formalization]]],
+        ref_as_formulae: Optional[List[Optional[Formalization]]],
+    ):
+        """calculate similiarity score by comparing two lists of formalizations"""
+
+        # references should be a list of formalizations
+        if ref_as_formulae is None:
+            return {}
+        if None in ref_as_formulae:
+            return {}
+        # minimum scores if predictions are not a list of formalizations
+        if pred_as_formulae is None:
+            return {"form_abstract_sim": 0, "form_acc_refs": 0}
+        if None in pred_as_formulae:
+            return {"form_abstract_sim": 0, "form_acc_refs": 0}
+        if len(pred_as_formulae) != len(ref_as_formulae):
+            return {"form_abstract_sim": 0, "form_acc_refs": 0}
+
+        form_acc_refs = all(
+            p.ref_reco == r.ref_reco
+            for p, r in zip(pred_as_formulae, ref_as_formulae)
+            if p is not None and r is not None  # redundant, for mypy
+        )
+
+        form_abstract_sim = np.mean(
+            [
+                self.abstract_sim(p.form, r.form)
+                for p, r in zip(pred_as_formulae, ref_as_formulae)
+                if p is not None and r is not None  # redundant, for mypy
+            ]
+        )
+
+        scores = {
+            "form_abstract_sim": form_abstract_sim,
+            "form_acc_refs": form_acc_refs,
+        }
+
+        return scores
+
+    @staticmethod
+    def abstract_sim(form1: str, form2: str) -> float:
+        """calculates structural similarity between to formulas"""
+        # remove white space
+        af1 = form1.replace(" ", "")
+        af2 = form2.replace(" ", "")
+        # use a single propositional constant
+        af1 = re.sub("[pqrst]", "p", af1)
+        af2 = re.sub("[pqrst]", "p", af2)
+        # use a single name
+        af1 = re.sub("[abcde]", "a", af1)
+        af2 = re.sub("[abcde]", "a", af2)
+        # use a single predicate
+        af1 = re.sub("[FGHIJKLM]", "F", af1)
+        af2 = re.sub("[FGHIJKLM]", "F", af2)
+        # use a single relation
+        af1 = re.sub("[RSTUVW]", "R", af1)
+        af2 = re.sub("[RSTUVW]", "R", af2)
+        # use a single variable
+        af1 = re.sub("[xyzuw]", "x", af1)
+        af2 = re.sub("[xyzuw]", "x", af2)
+
+        return 1 - editdistance.eval(af1, af2) / max(len(af1), len(af2))
 
 
 class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods

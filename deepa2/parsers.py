@@ -6,8 +6,7 @@ import re
 from typing import Any, List, Dict, Tuple, Optional, Union
 
 import jinja2
-
-# import ttp
+from ttp import ttp  # type: ignore
 
 from deepa2 import DeepA2Item, QuotedStatement, ArgdownStatement, Formalization
 
@@ -33,6 +32,16 @@ class DeepA2Layouter:  # pylint: disable=too-few-public-methods
         self._templates = {
             k: env.from_string(v) for k, v in self._TEMPLATE_STRINGS.items()
         }
+
+    @staticmethod
+    def list_seperator() -> str:
+        """returns _LIST_SEPARATOR"""
+        return DeepA2Layouter._LIST_SEPARATOR
+
+    @staticmethod
+    def template_strings() -> Dict[Any, str]:
+        """returns _TEMPLATE_STRINGS"""
+        return DeepA2Layouter._TEMPLATE_STRINGS
 
     def _format_field(  # pylint: disable=too-many-return-statements
         self, data: Any, field: dataclasses.Field
@@ -156,12 +165,57 @@ class DeepA2Parser:
         """parses list of statements"""
 
     @staticmethod
-    def parse_formalization(text: str):
+    def parse_formalization(text: str) -> Optional[List[Optional[Formalization]]]:
         """parses formalizations"""
+        parser = FormulaeParser()
+        formalizations = parser.parse_formalizations(text)
+        return formalizations
 
     @staticmethod
     def parse_keys(text: str):
         """parses keys of formalization"""
+
+
+class FormulaeParser:
+    """parses text as list of formalizations"""
+
+    @staticmethod
+    def parse_formalizations(text: str) -> Optional[List[Optional[Formalization]]]:
+        """tries to parse text as list of Formalizations"""
+        if text is None:
+            return None
+        if not text:
+            return []
+        sep = DeepA2Layouter.list_seperator()
+        formulas = text.split(sep)
+        formalizations = []
+        for text_f in formulas:
+            formalizations.append(FormulaeParser.parse_formula(text_f))
+        return formalizations
+
+    @staticmethod
+    def parse_formula(text: str) -> Optional[Formalization]:
+        """tries to parse text as a single formalizations"""
+
+        template = "{{ form  | ORPHRASE }} (ref: ({{ ref_reco }}))"
+        text = text.strip()
+
+        parser = ttp(text, template)
+        parser.parse()
+        parse_results = parser.result()[0][0]
+        if not ("form" in parse_results and "ref_reco" in parse_results):
+            return None
+
+        # HACK: simple check whether string represents a formula
+        words = re.split(r"\W+", parse_results["form"])
+        is_formula = all((len(w) <= 1 or w == "not") for w in words)
+        if not is_formula:
+            return None
+        try:
+            ref_reco = int(parse_results["ref_reco"])
+        except ValueError:
+            ref_reco = -1
+        return Formalization(form=parse_results["form"], ref_reco=ref_reco)
 
 
 class ArgdownParser:
