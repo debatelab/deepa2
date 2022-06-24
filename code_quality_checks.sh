@@ -1,7 +1,7 @@
 #!/bin/bash
 echo "===================================================================="
 echo "Running pylint..."
-poetry run pylint deepa2 tests
+poetry run pylint --rcfile pyproject.toml deepa2 tests
 
 echo "Running flake8..."
 poetry run flake8 deepa2 tests
