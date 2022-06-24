@@ -22,6 +22,12 @@ from deepa2.builder.aifdb_builder import (
     RawAIFDBExample,
     PreprocessedAIFDBExample,
 )
+from deepa2.builder.arg_q_builder import (
+    ArgQBuilder,
+    ArgQLoader,
+    PreprocessedArgQExample,
+    RawArgQExample,
+)
 from deepa2.builder.nli_builder import (
     ESNLIBuilder,
     RawESNLIExample,
@@ -41,12 +47,12 @@ app = typer.Typer()
 
 
 @app.command()
-def bake(  # pylint: disable=too-many-arguments,too-many-branches # noqa: C901
+def bake(  # pylint: disable=too-many-arguments,too-many-branches,too-many-statements # noqa: C901
     source_type: Optional[str] = typer.Option(
         None,
         help="type of the source dataset, used to"
         "choose a compatible Builder; currently supported source types:"
-        "`esnli`, `aifdb`, `enbank`.",
+        "`esnli`, `aifdb`, `enbank`, `argq`.",
     ),
     name: Optional[str] = typer.Option(
         None,
@@ -116,6 +122,11 @@ def bake(  # pylint: disable=too-many-arguments,too-many-branches # noqa: C901
         dataset_loader = EnBankLoader(**config)
         director.raw_example_class = RawEnBankExample
         director.preprocessed_example_class = PreprocessedEnBankExample
+    elif config.get("source_type") == "argq":
+        builder = ArgQBuilder(**config)
+        dataset_loader = ArgQLoader(**config)
+        director.raw_example_class = RawArgQExample
+        director.preprocessed_example_class = PreprocessedArgQExample
     else:
         typer.echo(f"Unknown source_type: {config.get('source_type')}")
         sys.exit(-1)
