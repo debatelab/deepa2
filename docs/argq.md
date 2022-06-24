@@ -1,4 +1,4 @@
-# Entailment Bank to DeepA2
+# IBM-ArgQ to DeepA2
 
 ## Original Dataset
 
