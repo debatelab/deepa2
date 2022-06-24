@@ -5,6 +5,8 @@ The following pages outline how the scripts provided by this repository are used
 * [e-SNLI](esnli.md)
 * [AIFdb](aifdb.md)
 * [Entailment Bank](enbank.md)
+* [IBM-ArgQ-Rank](argq.md)
+
 
 ## Usage options for `deepa2 serve`
 
