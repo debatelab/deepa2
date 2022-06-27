@@ -5,7 +5,7 @@ from __future__ import annotations
 import dataclasses
 import logging
 import pathlib
-import random  # pylint: disable=duplicate-code
+import random
 import shutil
 import sys
 from typing import List, Dict, Union
@@ -19,7 +19,7 @@ from tqdm import tqdm  # type: ignore
 from deepa2 import (
     QuotedStatement,
     DeepA2Item,
-)  # pylint: disable=duplicate-code
+)
 from deepa2.builder import (
     RawExample,
     PreprocessedExample,
@@ -28,10 +28,10 @@ from deepa2.builder import (
     PipedBuilder,
     Pipeline,
     Transformer,
-)  # pylint: disable=duplicate-code
+)
 from deepa2.config import (
     data_dir,
-)  # pylint: disable=duplicate-code
+)
 
 tqdm.pandas()
 
@@ -119,7 +119,6 @@ class AddSourceText(Transformer):
     def __init__(self, builder: Builder) -> None:
         super().__init__(builder)
         self._random = random.Random()
-        # pylint: disable=duplicate-code
 
     def _generate_source(
         self,
