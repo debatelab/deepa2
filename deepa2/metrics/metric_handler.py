@@ -216,6 +216,12 @@ class StatementHandler(AbstractDA2MetricHandler):
 class FormalizationHandler(AbstractDA2MetricHandler):
     """handles formalization predictions"""
 
+    _MIN_SCORES = {
+        "form_abstract_sim": 0,
+        "form_acc_refs": 0,
+        "form_bleu": 0,
+    }
+
     def handle(self, prediction: str, reference: str) -> Optional[Dict]:
         ref_as_formulae = DeepA2Parser.parse_formalization(reference)
         if ref_as_formulae:
@@ -240,11 +246,11 @@ class FormalizationHandler(AbstractDA2MetricHandler):
             return {}
         # minimum scores if predictions are not a list of formalizations
         if pred_as_formulae is None:
-            return {"form_abstract_sim": 0, "form_acc_refs": 0}
+            return self._MIN_SCORES
         if None in pred_as_formulae:
-            return {"form_abstract_sim": 0, "form_acc_refs": 0}
+            return self._MIN_SCORES
         if len(pred_as_formulae) != len(ref_as_formulae):
-            return {"form_abstract_sim": 0, "form_acc_refs": 0}
+            return self._MIN_SCORES
 
         form_acc_refs = all(
             p.ref_reco == r.ref_reco
@@ -260,9 +266,16 @@ class FormalizationHandler(AbstractDA2MetricHandler):
             ]
         )
 
+        # pairwise bleu
+        pairwise_bleu = self.pairwise_bleu(
+            [p.form if p is not None else " " for p in pred_as_formulae],
+            [r.form if r is not None else " " for r in ref_as_formulae],
+        )
+
         scores = {
             "form_abstract_sim": form_abstract_sim,
             "form_acc_refs": form_acc_refs,
+            "form_bleu": pairwise_bleu,
         }
 
         return scores
@@ -291,17 +304,32 @@ class FormalizationHandler(AbstractDA2MetricHandler):
 
         return 1 - editdistance.eval(af1, af2) / max(len(af1), len(af2))
 
+    @staticmethod
+    def pairwise_bleu(p_forms: List[str], r_forms: List[str]) -> float:
+        """calculates pairwise bleu scores"""
+        # replace blank string with white space char
+        p_forms = [p if p else " " for p in p_forms]
+        r_forms = [r if r else " " for r in r_forms]
+        if p_forms:
+            scb_output = scb.corpus_bleu(
+                p_forms,
+                [r_forms],
+                lowercase=False,
+            )
+        score = round(scb_output.score, 2)
+        return score
+
 
 class DA2PredictionEvaluator:  # pylint: disable=too-few-public-methods
     """evaluates a list of predictions and references"""
 
     def __init__(self) -> None:
         self.argdown_evaluator = ArgdownHandler()
-        self.statement_evaluator = StatementHandler()
         self.formalization_evaluator = FormalizationHandler()
+        self.statement_evaluator = StatementHandler()
 
-        self.argdown_evaluator.set_next(self.statement_evaluator).set_next(
-            self.formalization_evaluator
+        self.argdown_evaluator.set_next(self.formalization_evaluator).set_next(
+            self.statement_evaluator
         )
 
         self._scores: Sequence[Optional[Dict[str, Any]]] = []
