@@ -1,4 +1,4 @@
-"""tests the EnBankBuilder"""
+"""tests the ArgQ"""
 from __future__ import annotations
 
 from typing import List

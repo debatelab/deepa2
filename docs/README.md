@@ -6,6 +6,7 @@ The following pages outline how the scripts provided by this repository are used
 * [AIFdb](aifdb.md)
 * [Entailment Bank](enbank.md)
 * [IBM-ArgQ-Rank](argq.md)
+* [IBM-KPA](argkp.md)
 
 
 ## Usage options for `deepa2 serve`

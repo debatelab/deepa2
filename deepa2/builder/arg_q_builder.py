@@ -1,4 +1,4 @@
-"""Defines Builder for creating DeepA2 datasets from Entailment bank data."""
+"""Defines Builder for creating DeepA2 datasets from IBM ArgQ data."""
 
 from __future__ import annotations
 
@@ -91,7 +91,6 @@ class ArgQLoader(DatasetLoader):  # pylint: disable=too-few-public-methods
         # load all argq data from disk and initialize dataset
         df_arg_q = pd.read_csv(arg_q_raw)
         df_arg_q = df_arg_q[["argument", "topic", "set", "stance_WA"]]
-        df_arg_q.rename(columns={"stance_WA": "stance"})
 
         splits_mapping = {"train": "train", "dev": "validation", "test": "test"}
         dataset_dict = {}
@@ -191,7 +190,7 @@ class AddConjectures(Transformer):
 
 
 class ArgQBuilder(PipedBuilder):
-    """builds enbank dataset"""
+    """builds ArgQ dataset"""
 
     @staticmethod
     def preprocess(dataset: datasets.Dataset) -> datasets.Dataset:

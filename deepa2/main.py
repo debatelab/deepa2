@@ -28,6 +28,12 @@ from deepa2.builder.arg_q_builder import (
     PreprocessedArgQExample,
     RawArgQExample,
 )
+from deepa2.builder.arg_kp_builder import (
+    ArgKPBuilder,
+    ArgKPLoader,
+    PreprocessedArgKPExample,
+    RawArgKPExample,
+)
 from deepa2.builder.nli_builder import (
     ESNLIBuilder,
     RawESNLIExample,
@@ -52,7 +58,7 @@ def bake(  # pylint: disable=too-many-arguments,too-many-branches,too-many-state
         None,
         help="type of the source dataset, used to"
         "choose a compatible Builder; currently supported source types:"
-        "`esnli`, `aifdb`, `enbank`, `argq`.",
+        "`esnli`, `aifdb`, `enbank`, `argq`, `argkp`.",
     ),
     name: Optional[str] = typer.Option(
         None,
@@ -127,6 +133,11 @@ def bake(  # pylint: disable=too-many-arguments,too-many-branches,too-many-state
         dataset_loader = ArgQLoader(**config)
         director.raw_example_class = RawArgQExample
         director.preprocessed_example_class = PreprocessedArgQExample
+    elif config.get("source_type") == "argkp":
+        builder = ArgKPBuilder(**config)
+        dataset_loader = ArgKPLoader(**config)
+        director.raw_example_class = RawArgKPExample
+        director.preprocessed_example_class = PreprocessedArgKPExample
     else:
         typer.echo(f"Unknown source_type: {config.get('source_type')}")
         sys.exit(-1)
