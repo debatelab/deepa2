@@ -1,0 +1,42 @@
+---
+name: tests
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches:
+        - master  
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up Python 3.8
+        uses: actions/setup-python@v1
+        with:
+          python-version: 3.8
+      - name: Install poetry
+        uses: snok/install-poetry@v1.3.0
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+      - name: Load cached venv
+        id: cached-poetry-dependencies
+        uses: actions/cache@v2
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ hashFiles('**/poetry.lock') }}
+      - name: Install dependencies
+        run: poetry install
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+      - name: Test & publish code coverage
+        uses: paambaati/codeclimate-action@v3.0.0
+        env:
+          CC_TEST_REPORTER_ID: ccf97e067ac923ee063f44f9344f8af7c4c5fa0233583af818a1002b6d035775
+        with:
+          coverageCommand: poetry run coverage run -m pytest
+          debug: true

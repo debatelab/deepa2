@@ -36,6 +36,7 @@ types-requests = "^2.27.8"
 pandas-stubs = "^1.2.0"
 types-PyYAML = "^6.0.4"
 ipython = "7.31.1"
+coverage = "^6.4.1"
 
 [tool.pylint.messages_control]
 
