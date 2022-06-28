@@ -52,7 +52,7 @@ logging.basicConfig(filename="deepa2.log", level=logging.DEBUG)
 app = typer.Typer()
 
 
-@app.command()
+@app.command()  # noqa: C901
 def bake(  # noqa: C901  pylint: disable=too-many-arguments,too-many-branches,too-many-statements
     source_type: Optional[str] = typer.Option(
         None,
