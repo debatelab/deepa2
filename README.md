@@ -1,10 +1,10 @@
 <p align="left">
-    <a href="https://github.com/debatelab/deepa2/actions/workflows/run_pytest.yml">
+    <!--<a href="https://github.com/debatelab/deepa2/actions/workflows/run_pytest.yml">
         <img alt="unit tests" src="https://github.com/debatelab/deepa2-datasets/actions/workflows/run_pytest.yml/badge.svg?branch=main">
     </a>
     <a href="https://github.com/debatelab/deepa2/actions/workflows/code_quality_checks.yml">
         <img alt="code quality" src="https://github.com/debatelab/deepa2-datasets/actions/workflows/code_quality_checks.yml/badge.svg?branch=main">
-    </a>
+    </a>-->
     <a href="https://codeclimate.com/github/debatelab/deepa2">
         <img alt="Code Climate maintainability" src="https://img.shields.io/codeclimate/maintainability/debatelab/deepa2">
     </a>
