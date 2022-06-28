@@ -53,7 +53,7 @@ app = typer.Typer()
 
 
 @app.command()
-def bake(  # pylint: disable=too-many-arguments,too-many-branches,too-many-statements # noqa: C901
+def bake(  # noqa: C901  pylint: disable=too-many-arguments,too-many-branches,too-many-statements
     source_type: Optional[str] = typer.Option(
         None,
         help="type of the source dataset, used to"
