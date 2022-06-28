@@ -14,6 +14,7 @@ config_1 = {
     "sources": [{"path": "."}],
     "export_path": ".",
     "export_format": "parquet",
+    "mask_probability": 0,
     "generative_modes": [
         {
             "name": "not-used-to-infer-inputs-and-target",
@@ -29,7 +30,23 @@ config_1 = {
 config_2 = {  # same as config_1, mode inferred from name
     "sources": [{"path": "."}],
     "export_path": ".",
+    "mask_probability": 0,
     "export_format": "parquet",
+    "generative_modes": [
+        {
+            "name": "s+r => j",
+        }
+    ],
+    "input_column_name": "text",
+    "target_column_name": "target",
+}
+
+
+config_3 = {  # same as config_2, everything is masked
+    "sources": [{"path": "."}],
+    "export_path": ".",
+    "export_format": "parquet",
+    "mask_probability": 1.0,
     "generative_modes": [
         {
             "name": "s+r => j",
@@ -77,3 +94,32 @@ def test_infer_keys_from_name():
     assert modes_1[0].input == modes_2[0].input
 
     assert modes_1[0].target == modes_2[0].target
+
+
+def test_masking():
+    """test T2TPreprocessor"""
+    t2t_preprocessor = T2TPreprocessor(**config_3)
+    source_text = "source_text-1234"
+    reasons = [
+        QuotedStatement(text="reasons-1234", ref_reco=1),
+        QuotedStatement(text="reasons-1234", ref_reco=2),
+    ]
+    conjectures = [QuotedStatement(text="conjectures-1234", ref_reco=3)]
+    da2_item = DeepA2Item(
+        source_text=source_text, reasons=reasons, conjectures=conjectures
+    )
+    t2t_item = t2t_preprocessor.map_to_t2t(
+        {k: [v] for k, v in dataclasses.asdict(da2_item).items()}
+    )
+
+    print(t2t_item)
+
+    assert (
+        t2t_item["target"][0]
+        == "conjectures-1234 (ref: (3)) <extra_id_1> reasons-1234 "
+        "(ref: (1)) | reasons-1234 (ref: (2)) <extra_id_2>"
+    )
+    assert (
+        t2t_item["text"][0] == "conjectures: source_text: source_text-1234 "
+        "reasons: <extra_id_1>"
+    )

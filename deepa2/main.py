@@ -22,6 +22,18 @@ from deepa2.builder.aifdb_builder import (
     RawAIFDBExample,
     PreprocessedAIFDBExample,
 )
+from deepa2.builder.arg_q_builder import (
+    ArgQBuilder,
+    ArgQLoader,
+    PreprocessedArgQExample,
+    RawArgQExample,
+)
+from deepa2.builder.arg_kp_builder import (
+    ArgKPBuilder,
+    ArgKPLoader,
+    PreprocessedArgKPExample,
+    RawArgKPExample,
+)
 from deepa2.builder.nli_builder import (
     ESNLIBuilder,
     RawESNLIExample,
@@ -40,13 +52,13 @@ logging.basicConfig(filename="deepa2.log", level=logging.DEBUG)
 app = typer.Typer()
 
 
-@app.command()
-def bake(  # pylint: disable=too-many-arguments,too-many-branches # noqa: C901
+@app.command()  # noqa: C901
+def bake(  # noqa: C901  pylint: disable=too-many-arguments,too-many-branches,too-many-statements
     source_type: Optional[str] = typer.Option(
         None,
         help="type of the source dataset, used to"
         "choose a compatible Builder; currently supported source types:"
-        "`esnli`, `aifdb`, `enbank`.",
+        "`esnli`, `aifdb`, `enbank`, `argq`, `argkp`.",
     ),
     name: Optional[str] = typer.Option(
         None,
@@ -116,6 +128,16 @@ def bake(  # pylint: disable=too-many-arguments,too-many-branches # noqa: C901
         dataset_loader = EnBankLoader(**config)
         director.raw_example_class = RawEnBankExample
         director.preprocessed_example_class = PreprocessedEnBankExample
+    elif config.get("source_type") == "argq":
+        builder = ArgQBuilder(**config)
+        dataset_loader = ArgQLoader(**config)
+        director.raw_example_class = RawArgQExample
+        director.preprocessed_example_class = PreprocessedArgQExample
+    elif config.get("source_type") == "argkp":
+        builder = ArgKPBuilder(**config)
+        dataset_loader = ArgKPLoader(**config)
+        director.raw_example_class = RawArgKPExample
+        director.preprocessed_example_class = PreprocessedArgKPExample
     else:
         typer.echo(f"Unknown source_type: {config.get('source_type')}")
         sys.exit(-1)
@@ -144,6 +166,9 @@ def serve(  # pylint: disable=too-many-arguments
     ),
     target_column_name: Optional[str] = typer.Option(
         "target", help="name of target column of t2t dataset"
+    ),
+    mask_probability: Optional[float] = typer.Option(
+        None, help="probability that an input sequence will be masked"
     ),
     configfile: Optional[str] = typer.Option(
         None,
@@ -174,6 +199,8 @@ def serve(  # pylint: disable=too-many-arguments
         config["export_path"] = export_path
     if export_format:
         config["export_format"] = export_format
+    if mask_probability:
+        config["mask_probability"] = mask_probability
     config["input_column_name"] = input_column_name
     config["target_column_name"] = target_column_name
 
@@ -186,6 +213,10 @@ def serve(  # pylint: disable=too-many-arguments
     if "export_path" not in config:
         typer.echo("No export path specified, defaulting to ./exported.")
         config["export_path"] = "exported"
+
+    if "mask_probability" not in config:
+        typer.echo("No mask_probability specified, defaulting to 0.")
+        config["mask_probability"] = 0.0
 
     if "export_format" not in config:
         typer.echo("No export format specified, saving datasetdict as arrow tables.")

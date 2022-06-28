@@ -5,6 +5,15 @@
     <a href="https://github.com/debatelab/deepa2/actions/workflows/code_quality_checks.yml">
         <img alt="code quality" src="https://github.com/debatelab/deepa2-datasets/actions/workflows/code_quality_checks.yml/badge.svg?branch=main">
     </a>
+    <a href="https://codeclimate.com/github/debatelab/deepa2/test_coverage">
+        <img src="https://api.codeclimate.com/v1/badges/8b4bc32031d6d67d4831/test_coverage" />
+    </a>
+    <a href="https://codeclimate.com/github/debatelab/deepa2">
+        <img alt="Code Climate maintainability" src="https://img.shields.io/codeclimate/maintainability/debatelab/deepa2">
+    </a>
+    <a href="https://pypi.org/project/deepa2/">
+        <img src="https://img.shields.io/pypi/v/deepa2" alt="PyPI version">
+    </a>    
 </p>
 
 # Deep Argument Analysis (`deepa2`)</p>
@@ -28,7 +37,7 @@ The [Documentation](docs/) describes usage options and gives background info on 
 
 ```bash
 source my-projects-venv/bin/activate 
-python --version  # should be ^3.8
+python --version  # should be ^3.7
 python -m pip install deepa2
 ```
 

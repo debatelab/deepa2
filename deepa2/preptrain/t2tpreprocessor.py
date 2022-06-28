@@ -4,7 +4,7 @@ import dataclasses
 import logging
 from pathlib import Path
 import random
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Tuple
 
 import datasets
 
@@ -15,10 +15,16 @@ import deepa2
 class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
     """merges and exports DA2 datasets as Text2Text dataset"""
 
+    # default T5 mask tokens:
+    _MASK_TOKEN = "<extra_id_1>"
+    _END_MASK_TOKEN = "<extra_id_2>"
+    _MAX_MASK_LENGTH = 15
+
     def __init__(self, **config) -> None:
         self._sources: Dict = config["sources"]
         self._export_path: str = config["export_path"]
         self._export_format: str = config["export_format"]
+        self._mask_probability: float = config["mask_probability"]
         self._generative_modes: List[GenerativeMode] = []
         for mode_data in config["generative_modes"]:
             if "input" not in mode_data or "target" not in mode_data:
@@ -53,6 +59,33 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
                 logging.error("Target of mode not a DeepA2 field: %s", mode)
                 raise ValueError(f"Target of mode not a DeepA2 field: {mode}.")
 
+    def mask_input(self, input_raw: str) -> Tuple[str, str]:
+        """masks a single input string, return masked_input and substitution"""
+        input_words = input_raw.split()
+
+        if len(input_words) <= self._MAX_MASK_LENGTH:
+            masked_input = self._MASK_TOKEN
+            substitution = (
+                self._MASK_TOKEN + " " + input_raw + " " + self._END_MASK_TOKEN
+            )
+        else:
+            # choose a random position in input
+            pos = self._random.randint(0, len(input_words) - self._MAX_MASK_LENGTH)
+            masked_input_w = (
+                input_words[0:pos]
+                + [self._MASK_TOKEN]
+                + input_words[pos + self._MAX_MASK_LENGTH :]
+            )
+            masked_input = " ".join(masked_input_w)
+            substitution_w = (
+                [self._MASK_TOKEN]
+                + input_words[pos : pos + self._MAX_MASK_LENGTH]
+                + [self._END_MASK_TOKEN]
+            )
+            substitution = " ".join(substitution_w)
+
+        return masked_input, substitution
+
     def map_to_t2t(self, da2_dict: Dict[str, Any]) -> Dict[str, List[str]]:
         """create multiple t2t items from a single Deep A2 item"""
         t2t_item: Dict[str, List[str]] = {}
@@ -75,18 +108,53 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
         for mode in active_modes:
             # check whether target or any input is None?
             if not any(da2_item[k] is None for k in mode.input + [mode.target]):
+                # determine input key to-be masked
+                mask_key = None
+                if (
+                    len(mode.input) > 1
+                    and self._random.random() < self._mask_probability
+                ):
+                    mask_key = self._random.choice(
+                        [
+                            k
+                            for k in mode.input
+                            if k != "source_text"  # don't mask source_text
+                        ]
+                    )
+
                 inputs = []
                 inputs.append(mode.target + ":")  # prefix
                 for key in mode.input:  # inputs of mode
-                    inputs.append(f"{key}: {da2_item[key]}")
+                    if key == mask_key:
+                        input_raw, mask_substitution = self.mask_input(da2_item[key])
+                    else:
+                        input_raw = da2_item[key]
+                        mask_substitution = None
+                    inputs.append(f"{key}: {input_raw}")
 
                 texts.append(" ".join(inputs))
-                targets.append(da2_item[mode.target])
+
+                # determine target
+                target = da2_item[mode.target]
+                if mask_substitution is not None:
+                    target += " " + mask_substitution
+                targets.append(target)
 
         t2t_item[self._input_column_name] = texts
         t2t_item[self._target_column_name] = targets
 
         return t2t_item
+
+    def _save_dataset(self, dataset: datasets.Dataset, path: Path) -> None:
+        """saves the dataset in format given by `self._export_format`"""
+        if self._export_format == "parquet":
+            dataset.to_parquet(path)
+        elif self._export_format == "csv":
+            dataset.to_csv(path)
+        elif self._export_format == "jsonl":
+            dataset.to_json(path, orient="records", lines=True)
+        else:
+            logging.warning("Unknown format: {self._export_format}, dataset not saved.")
 
     def transform(self) -> None:
         """transforms sources"""
@@ -102,7 +170,11 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
             logging.info("Loading dataset dict from source: %s", source)
             kwargs = source
             kwargs["features"] = deepa2.DA2_FEATURES
-            da2_dataset = datasets.load_dataset(**kwargs)
+            try:
+                da2_dataset = datasets.load_dataset(**kwargs)
+            except KeyError:
+                kwargs["features"].pop("metadata", None)
+                da2_dataset = datasets.load_dataset(**kwargs)
             if isinstance(da2_dataset, datasets.DatasetDict):
                 logging.info("Processing dataset dict %s", da2_dataset)
                 for key, split in da2_dataset.items():
@@ -126,19 +198,6 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
             }
         )
 
-        def save_dataset(dataset: datasets.Dataset, path: Path) -> None:
-            """saves the dataset in format given by `self._export_format`"""
-            if self._export_format == "parquet":
-                dataset.to_parquet(path)
-            elif self._export_format == "csv":
-                dataset.to_csv(path)
-            elif self._export_format == "jsonl":
-                dataset.to_json(path, orient="records", lines=True)
-            else:
-                logging.warning(
-                    "Unknown format: {self._export_format}, dataset not saved."
-                )
-
         if self._export_path:
             path = Path(
                 self._export_path,
@@ -152,7 +211,7 @@ class T2TPreprocessor:  # pylint: disable=too-many-instance-attributes
                 for key, split in dataset.items():
                     logging.info("Saving processed t2t split %s ...", key)
                     file_name = f"{key}.{self._export_format}"
-                    save_dataset(split, path / file_name)
+                    self._save_dataset(split, path / file_name)
             logging.info("Saved t2t dataset to %s.", path)
         else:
             logging.warning("No export path, t2t dataset is not saved.")

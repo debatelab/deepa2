@@ -5,6 +5,9 @@ The following pages outline how the scripts provided by this repository are used
 * [e-SNLI](esnli.md)
 * [AIFdb](aifdb.md)
 * [Entailment Bank](enbank.md)
+* [IBM-ArgQ-Rank](argq.md)
+* [IBM-KPA](argkp.md)
+
 
 ## Usage options for `deepa2 serve`
 
@@ -106,6 +109,6 @@ source_paraphrase:  # a maximally clear re-rendition of source_text
 title:              # a telling title of the argument, e.g.
   "The ontological argument"
 context:             # the context, e.g.
-  "Does god exist? This is a famous proof from St. Anselm's 
+  "Does God exist? This is a famous proof from St. Anselm's 
   Proslogion"
 ```

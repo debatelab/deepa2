@@ -113,3 +113,20 @@ def test_esnli_conclusions_3(processed_examples):
     print(conclusions)
     print(hyp_e)
     assert (hyp_e in conclusions) and (len(set(conclusions)) != 1)
+
+
+def test_esnli_formalization(processed_examples):
+    """legal formalizations"""
+    premiss_formalized = [
+        da2item["premises_formalized"][1]["form"] for da2item in processed_examples
+    ]
+    print(premiss_formalized)
+    assert not any("{" in f for f in premiss_formalized)
+    assert not any("¬" in f for f in premiss_formalized)
+
+    conclusion_formalized = [
+        da2item["conclusion_formalized"][0]["form"] for da2item in processed_examples
+    ]
+    print(conclusion_formalized)
+    assert not any("{" in f for f in conclusion_formalized)
+    assert not any("¬" in f for f in conclusion_formalized)

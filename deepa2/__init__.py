@@ -16,4 +16,5 @@ from deepa2.datastructures import (
 
 from deepa2.parsers import (
     DeepA2Layouter,
+    DeepA2Parser,
 )

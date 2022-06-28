@@ -2,17 +2,17 @@
 
 import dataclasses
 import logging
+import re
 from typing import Any, List, Dict, Tuple, Optional, Union
 
 import jinja2
-
-# import ttp
+from ttp import ttp  # type: ignore
 
 from deepa2 import DeepA2Item, QuotedStatement, ArgdownStatement, Formalization
 
 
 class DeepA2Layouter:  # pylint: disable=too-few-public-methods
-    """parses and formats DeepA2Items"""
+    """formats DeepA2Items"""
 
     _IGNORED_FIELDS = ["metadata", "distractors"]
 
@@ -32,6 +32,16 @@ class DeepA2Layouter:  # pylint: disable=too-few-public-methods
         self._templates = {
             k: env.from_string(v) for k, v in self._TEMPLATE_STRINGS.items()
         }
+
+    @staticmethod
+    def list_seperator() -> str:
+        """returns _LIST_SEPARATOR"""
+        return DeepA2Layouter._LIST_SEPARATOR
+
+    @staticmethod
+    def template_strings() -> Dict[Any, str]:
+        """returns _TEMPLATE_STRINGS"""
+        return DeepA2Layouter._TEMPLATE_STRINGS
 
     def _format_field(  # pylint: disable=too-many-return-statements
         self, data: Any, field: dataclasses.Field
@@ -105,3 +115,214 @@ class DeepA2Layouter:  # pylint: disable=too-few-public-methods
             if field.name not in self._IGNORED_FIELDS
         }
         return da2_formatted
+
+
+@dataclasses.dataclass
+class ArgumentStatement:
+    """dataclass representing a statement in an argument
+
+    fields:
+        text: str - the text of the statement
+        label: int - the label of the statement
+        is_conclusion: bool - whether the statement is a conclusion
+        uses: List[int] - the ids of the statements the statement is inferred from
+        inference_info: str - information about the inference (not parsed)
+        schemes: List[str] - the schemes used to infer the statement
+        variants: List[str] - the variants of the schemes used to infer the statement
+    """
+
+    text: Optional[str] = None
+    is_conclusion: bool = False
+    label: Optional[int] = None
+    uses: Optional[List[int]] = None
+    inference_info: Optional[str] = None
+    schemes: Optional[List[str]] = None
+    variants: Optional[List[str]] = None
+
+
+@dataclasses.dataclass
+class Argument:
+    """dataclass representing an argument"""
+
+    statements: List[ArgumentStatement] = dataclasses.field(default_factory=list)
+
+
+class DeepA2Parser:
+    """parses text as DeepA2Items"""
+
+    @staticmethod
+    def parse_argdown(text: str) -> Optional[Argument]:
+        """parses argdown text as Argument"""
+        parser = ArgdownParser()
+        statements = parser.parse_argdown_block(text)
+        if not statements:
+            return None
+        argument = Argument(statements=statements)
+        return argument
+
+    @staticmethod
+    def parse_list(text: str):
+        """parses list of statements"""
+
+    @staticmethod
+    def parse_formalization(text: str) -> Optional[List[Optional[Formalization]]]:
+        """parses formalizations"""
+        parser = FormulaeParser()
+        formalizations = parser.parse_formalizations(text)
+        return formalizations
+
+    @staticmethod
+    def parse_keys(text: str):
+        """parses keys of formalization"""
+
+
+class FormulaeParser:
+    """parses text as list of formalizations"""
+
+    @staticmethod
+    def parse_formalizations(text: str) -> Optional[List[Optional[Formalization]]]:
+        """tries to parse text as list of Formalizations"""
+        if text is None:
+            return None
+        if not text:
+            return []
+        sep = DeepA2Layouter.list_seperator()
+        formulas = text.split(sep)
+        formalizations = []
+        for text_f in formulas:
+            formalizations.append(FormulaeParser.parse_formula(text_f))
+        return formalizations
+
+    @staticmethod
+    def parse_formula(text: str) -> Optional[Formalization]:
+        """tries to parse text as a single formalizations"""
+
+        template = "{{ form  | ORPHRASE }} (ref: ({{ ref_reco }}))"
+        text = text.strip()
+
+        parser = ttp(text, template)
+        parser.parse()
+        parse_results = parser.result()[0][0]
+        if not ("form" in parse_results and "ref_reco" in parse_results):
+            return None
+
+        # HACK: simple check whether string represents a formula
+        words = re.split(r"\W+", parse_results["form"])
+        is_formula = all((len(w) <= 1 or w == "not") for w in words)
+        if not is_formula:
+            return None
+        try:
+            ref_reco = int(parse_results["ref_reco"])
+        except ValueError:
+            ref_reco = -1
+        return Formalization(form=parse_results["form"], ref_reco=ref_reco)
+
+
+class ArgdownParser:
+    """parses text as Argdown"""
+
+    INFERENCE_PATTERN_REGEX = (
+        r" ---- |"
+        r" -- with (?P<scheme>[^\(\)]*)(?P<variant> \([^-\(\))]*\))?"
+        r" from (?P<uses>[\(\), 0-9]+) -- |"
+        r" -- (?P<info>[^-]*) -- "
+    )
+
+    @staticmethod
+    def preprocess_ad(ad_raw: str) -> str:
+        """preprocess argdown text"""
+        ad_raw = ad_raw.replace("\n", " ")
+        ad_raw = re.sub(r"\s{2,}", " ", ad_raw)
+        ad_raw = ad_raw.replace("with?? ", "with ?? ")
+        return ad_raw
+
+    def parse_argdown_block(self, ad_raw: str) -> Optional[List[ArgumentStatement]]:
+        """parses argdown block"""
+        # preprocess
+        ad_raw = self.preprocess_ad(ad_raw)
+        regex = self.INFERENCE_PATTERN_REGEX
+
+        argument_statements = []
+
+        # find all inferences
+        matches = re.finditer(regex, ad_raw, re.MULTILINE)
+
+        inf_args: Dict[str, Any] = {}
+        pointer = 0
+        # iterate over inferences
+        for match in matches:
+            # parse all propositions before inference matched that have not been parsed before
+            new_statements = self.parse_proposition_block(
+                ad_raw[pointer : match.start()], **inf_args
+            )
+            if not new_statements:
+                # if failed to parse proposition block return None
+                return None
+            argument_statements.extend(new_statements)
+            # update pointer and inf_args to be used for parsing next propositions block
+            pointer = match.end()
+            schemes = match.group("scheme")
+            variants = match.group("variant")
+            inference_info = match.group(0)
+            inf_args = {
+                "schemes": re.split("; |, | and ", schemes) if schemes else None,
+                "variants": re.split("; |, | and ", variants) if variants else None,
+                "uses": self.parse_uses(match.group("uses")),
+                "inference_info": inference_info.strip("- ")
+                if inference_info
+                else None,
+            }
+        # parse remaining propositions
+        if pointer > 0:
+            new_statements = self.parse_proposition_block(ad_raw[pointer:], **inf_args)
+            argument_statements.extend(new_statements)
+
+        return argument_statements
+
+    @staticmethod
+    def parse_proposition_block(ad_raw: str, **inf_args) -> List[ArgumentStatement]:
+        """parses proposition block"""
+        statement_list: List[ArgumentStatement] = []
+        if not ad_raw:
+            return statement_list
+        # preprocess
+        if ad_raw[0] != " ":
+            ad_raw = " " + ad_raw
+        # match labels
+        regex = r" \(([0-9]*)\) "
+        if not re.match(regex, ad_raw):
+            return statement_list
+        matches = re.finditer(regex, ad_raw, re.MULTILINE)
+        label = -1
+        pointer = -1
+        # iterate over matched labels
+        for match in matches:
+            # for matched label, we're adding the previous statement
+            if label > -1:
+                statement = ArgumentStatement(
+                    text=ad_raw[pointer : match.start()].strip(), label=label
+                )
+                statement_list.append(statement)
+            label = int(match.group(1))  # update label
+            pointer = match.end()  # update pointer
+        if label > -1:
+            # add last statement
+            statement = ArgumentStatement(text=ad_raw[pointer:].strip(), label=label)
+            statement_list.append(statement)
+        if statement_list and "uses" in inf_args:
+            # update first statement with inference details
+            statement_list[0].is_conclusion = True
+            for key, value in inf_args.items():
+                if hasattr(statement_list[0], key):
+                    setattr(statement_list[0], key, value)
+
+        return statement_list
+
+    @staticmethod
+    def parse_uses(uses_raw) -> List[int]:
+        """parses list of labels used in an inference"""
+        if not uses_raw:
+            return []
+        regex = r"\(([0-9]+)\)"
+        matches = re.finditer(regex, str(uses_raw), re.MULTILINE)
+        return [int(match.group(1)) for match in matches]
