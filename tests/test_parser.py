@@ -7,7 +7,7 @@ from deepa2 import (
 )
 from deepa2.datastructures import Formalization
 
-from deepa2.parsers import Argument, ArgumentStatement
+from deepa2.parsers import Argument, ArgumentStatement, FOLParser
 
 
 @pytest.fixture(name="argdown_examples")
@@ -201,3 +201,20 @@ def test_formalizations2():
     formalizations = DeepA2Parser.parse_formalization(text)
     references = [None, None]
     assert formalizations == references
+
+
+def test_fol_parser1():
+    """test FOL Parser"""
+    formalizations = [
+        Formalization(form="(x): F x -> G x", ref_reco=2),
+        Formalization(form="(x)(y): F x -> (R x y v G y)", ref_reco=1),
+        Formalization(form="(x)(y): F x -> (Ez):(R x y v G y)", ref_reco=1),
+        Formalization(form="(x): ((y): F x) -> (R x y v G y)", ref_reco=1),
+        Formalization(form="(x)(y): F x -> not (R x y & not G y)", ref_reco=1),
+    ]
+    formulae = FOLParser.parse(formalizations)
+    print(formulae)
+    assert all(bool(f) for f in formulae)
+
+
+# TODO: add more tests for FOL parser

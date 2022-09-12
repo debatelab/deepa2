@@ -6,6 +6,7 @@ import re
 from typing import Any, List, Dict, Tuple, Optional, Union
 
 import jinja2
+from nltk.sem.logic import Expression, LogicalExpressionException  # type: ignore
 from ttp import ttp  # type: ignore
 
 from deepa2 import DeepA2Item, QuotedStatement, ArgdownStatement, Formalization
@@ -174,6 +175,120 @@ class DeepA2Parser:
     @staticmethod
     def parse_keys(text: str):
         """parses keys of formalization"""
+
+    @staticmethod
+    def parse_as_folf(
+        formalizations: List[Optional[Formalization]] = None,
+    ) -> Optional[List[Any]]:
+        """parses formalizations as first-order-logic formulae"""
+        parser = FOLParser()
+        folfs = parser.parse(formalizations)
+        return folfs
+
+
+class FOLParser:
+    """parser methods for first-order-logic formulae
+    based on NLTK parser"""
+
+    @staticmethod
+    def parse(
+        formalizations: List[Optional[Formalization]] = None,
+    ) -> Optional[List[Optional[Expression]]]:
+        """parses da2 formalizations as NLTK first-order-logic formulae"""
+        # preprocess
+        preprocessed_forms = FOLParser._preprocess(formalizations)
+        print(preprocessed_forms)
+        expressions = []
+        for pp_form in preprocessed_forms:
+            try:
+                expressions.append(Expression.fromstring(pp_form))
+            except LogicalExpressionException:
+                expressions.append(None)
+        return expressions
+
+    @staticmethod
+    def _preprocess(formalizations: List[Optional[Formalization]] = None) -> List[str]:
+        """preprocesses formalizations"""
+        if not formalizations:
+            return []
+        preprocessed_forms = []
+        for formalization in formalizations:
+            if formalization:
+                formula = FOLParser._da2_to_nltk_format(formalization.form)
+                preprocessed_forms.append(formula)
+            else:
+                preprocessed_forms.append("")
+        return preprocessed_forms
+
+    @staticmethod
+    def _da2_to_nltk_format(form: str) -> str:
+        """converts DeepA2 formalization to NLTK format"""
+        formula = form
+
+        # 1. reformat quantifiers
+        # find all subsequences with quantifiers
+        regex = r"(?:\s?\([E]?.\)\s?)+:"
+        matches = re.finditer(regex, formula, re.MULTILINE)
+        tmp = ""
+        pointer = 0
+        count_brackets_to_close = 0
+        for match in matches:
+            tmp += formula[pointer : match.start()]
+            tmp += FOLParser.replace_quantifiers(match.group())
+            # if formula doesn't continue with opening bracket, add one,
+            # assuming that the remainder of the formula belongs to scope of
+            # these quantors
+            if not formula[match.end() :].strip().startswith("("):
+                tmp += "("
+                count_brackets_to_close += 1
+            pointer = match.end()
+        tmp += formula[pointer:]
+        tmp += ")" * count_brackets_to_close
+        formula = tmp
+
+        # 2. reformat predicative subsentences
+        # find all atomic predicative formulas
+        regex = r"[A-Z](\s[a-uw-z])+(?:\s|\)|$)"
+        matches = re.finditer(regex, formula, re.MULTILINE)
+        tmp = ""
+        pointer = 0
+        for match in matches:
+            tmp += formula[pointer : match.start()]
+            tmp += FOLParser.format_predicative_f(match.group())
+            pointer = match.end()
+        tmp += formula[pointer:]
+        formula = tmp
+
+        # 3. replace junctors
+        formula = formula.replace("v", "|")
+        formula = formula.replace("not", "!")
+
+        return formula
+
+    @staticmethod
+    def replace_quantifiers(quantifiers: str):
+        """Replaces individual quantifiers in a sequence of quantifiers"""
+        new_s = ""
+        # find all individual quantifiers
+        regex = r"\(([E]?)(.)\)"
+        matches = re.finditer(regex, quantifiers, re.MULTILINE)
+        for match in matches:
+            quantifier = "exists" if bool(match.group(1)) else "all"
+            variable = match.group(2)
+            new_s += f"{quantifier} {variable}."
+
+        return new_s
+
+    @staticmethod
+    def format_predicative_f(predicative_f: str):
+        """formats predicative formula, e.g. 'A x y' to 'A(x,y)'"""
+        predicate = predicative_f[0]
+        arguments = predicative_f[1:]
+        arguments = arguments.strip()
+        arguments_list = arguments.split(" ")
+        arguments = ",".join(arguments_list)
+        new_f = f"{predicate}({arguments})"
+        return new_f
 
 
 class FormulaeParser:
