@@ -7,7 +7,7 @@ from deepa2 import (
 )
 from deepa2.datastructures import Formalization
 
-from deepa2.parsers import Argument, ArgumentStatement, FOLParser
+from deepa2.parsers import Argument, ArgumentStatement, FOLParser, QuotedStatement
 
 
 @pytest.fixture(name="argdown_examples")
@@ -182,6 +182,39 @@ def test_example_6(parsed_arguments):
     argument: Argument = parsed_arguments[5]
     print(argument)
     assert len(argument.statements) == 5
+
+
+def test_keys1():
+    """test keys"""
+    text = "p: premise | q: conclusion"
+    quotes = DeepA2Parser.parse_keys(text)
+    references = [
+        ("p", "premise"),
+        ("q", "conclusion"),
+    ]
+    assert quotes == references
+
+
+def test_keys2():
+    """test keys"""
+    text = "p : sen_p | F : pred_F"
+    quotes = DeepA2Parser.parse_keys(text)
+    references = [
+        ("p", "sen_p"),
+        ("F", "pred_F"),
+    ]
+    assert quotes == references
+
+
+def test_quotations1():
+    """test quotations"""
+    text = "quote-1 (ref: (2)) | quote 2 (ref: (1))"
+    quotes = DeepA2Parser.parse_quotes(text)
+    references = [
+        QuotedStatement(text="quote-1", ref_reco=2),
+        QuotedStatement(text="quote 2", ref_reco=1),
+    ]
+    assert quotes == references
 
 
 def test_formalizations1():

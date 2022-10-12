@@ -166,6 +166,13 @@ class DeepA2Parser:
         """parses list of statements"""
 
     @staticmethod
+    def parse_quotes(text: str) -> Optional[List[Optional[QuotedStatement]]]:
+        """parses formalizations"""
+        parser = QuotationsParser()
+        quotes = parser.parse_quotes(text)
+        return quotes
+
+    @staticmethod
     def parse_formalization(text: str) -> Optional[List[Optional[Formalization]]]:
         """parses formalizations"""
         parser = FormulaeParser()
@@ -173,8 +180,11 @@ class DeepA2Parser:
         return formalizations
 
     @staticmethod
-    def parse_keys(text: str):
+    def parse_keys(text: str) -> Optional[List[Optional[Tuple[str, str]]]]:
         """parses keys of formalization"""
+        parser = KeysParser()
+        keys = parser.parse_keys(text)
+        return keys
 
     @staticmethod
     def parse_as_folf(
@@ -289,6 +299,71 @@ class FOLParser:
         arguments = ",".join(arguments_list)
         new_f = f"{predicate}({arguments})"
         return new_f
+
+
+class QuotationsParser:
+    """parses text as list of quotes"""
+
+    @staticmethod
+    def parse_quotes(text: str) -> Optional[List[Optional[QuotedStatement]]]:
+        """tries to parse text as list of Formalizations"""
+        if text is None:
+            return None
+        if not text:
+            return []
+        sep = DeepA2Layouter.list_seperator()
+        qtexts = text.split(sep)
+        quotes = []
+        for qtext in qtexts:
+            quotes.append(QuotationsParser.parse_quotetext(qtext))
+        return quotes
+
+    @staticmethod
+    def parse_quotetext(text: str) -> Optional[QuotedStatement]:
+        """tries to parse text as a single quote"""
+
+        template = "{{ text  | ORPHRASE }} (ref: ({{ ref_reco }}))"
+        text = text.strip()
+
+        parser = ttp(text, template)
+        parser.parse()
+        parse_results = parser.result()[0][0]
+        if not ("text" in parse_results and "ref_reco" in parse_results):
+            return None
+        try:
+            ref_reco = int(parse_results["ref_reco"])
+        except ValueError:
+            ref_reco = -1
+        quote = QuotedStatement(text=parse_results["text"], ref_reco=ref_reco)
+        return quote
+
+
+class KeysParser:
+    """parses text as list of keys"""
+
+    @staticmethod
+    def parse_keys(text: str) -> Optional[List[Optional[Tuple[str, str]]]]:
+        """tries to parse text as list of keys"""
+        if text is None:
+            return None
+        if not text:
+            return []
+        sep = DeepA2Layouter.list_seperator()
+        ktexts = text.split(sep)
+        keys = []
+        for ktext in ktexts:
+            keys.append(KeysParser.parse_key(ktext))
+        return keys
+
+    @staticmethod
+    def parse_key(text: str) -> Optional[Tuple[str, str]]:
+        """tries to parse text as a key:value pair"""
+        if ":" not in text:
+            return None
+        text = text.strip()
+        # split at first colon
+        key, value = text.split(":", 1)
+        return key.strip(), value.strip()
 
 
 class FormulaeParser:
