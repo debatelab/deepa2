@@ -19,6 +19,7 @@ import dataclasses
 import logging
 from pathlib import Path
 from typing import Optional, Any, List, Dict, Type
+import uuid
 
 import datasets
 
@@ -347,12 +348,19 @@ class Director:  # pylint: disable=too-many-instance-attributes
         logging.debug("Features: %s", dataset["train"].info.features)
 
         # 6. Postprocess the dataset
-        if (not debug_size) and all(
-            "metadata" in split.column_names for _, split in dataset.items()
-        ):
-            for key, split in dataset.items():
-                dataset[key] = split.remove_columns("metadata")
-            logging.info("Removed metadata from deepa2 dataset")
+        if not debug_size:
+            if all("metadata" in split.column_names for _, split in dataset.items()):
+                for key, split in dataset.items():
+                    dataset[key] = split.remove_columns("metadata")
+                logging.info("Removed metadata from deepa2 dataset")
+
+            def add_uuid(example):
+                uid = name + "_" + str(uuid.uuid4())
+                example["metadata"] = [("id", uid)]
+                return example
+
+            dataset = dataset.map(add_uuid)
+            logging.info("Added uuids deepa2 dataset")
         if not active_features:
             active_features = list(dataset.column_names.values())[0]
 
