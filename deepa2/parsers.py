@@ -64,7 +64,19 @@ class DeepA2Layouter:  # pylint: disable=too-few-public-methods
             List[Tuple[str, str]],
             Union[List[Tuple[str, str]], None],
         ]:
-            return self._format_dict(dict(data))
+            try:
+                dictdata = dict(data)
+            except Exception as exc:
+                logging.error(
+                    "DeepA2Layouter couldn't format data %s in field %s as dict",
+                    data,
+                    field,
+                )
+                logging.error(exc)
+                raise ValueError(
+                    f"DeepA2Layouter couldn't format data {data} in field {field} as dict"
+                ) from exc
+            return self._format_dict(dictdata)
 
         if field.type in [
             Union[List[QuotedStatement], None],
