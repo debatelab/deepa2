@@ -491,7 +491,7 @@ class ArgdownParser:
         if ad_raw[0] != " ":
             ad_raw = " " + ad_raw
         # match labels
-        regex = r" \(([0-9]*)\) "
+        regex = r"\s\(([0-9]+)\)\s"
         if not re.match(regex, ad_raw):
             return statement_list
         matches = re.finditer(regex, ad_raw, re.MULTILINE)
