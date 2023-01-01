@@ -184,10 +184,12 @@ def test_example_6(parsed_arguments):
     print(argument)
     assert len(argument.statements) == 5
 
+
 def test_empty_label():
     ad_raw = """() premise \n---- (2) conclusion"""
     argument = DeepA2Parser.parse_argdown(ad_raw)
     assert argument is None
+
 
 def test_keys1():
     """test keys"""
