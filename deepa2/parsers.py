@@ -430,11 +430,22 @@ class ArgdownParser:
         r" -- (?P<info>[^-]*) -- "
     )
 
+    CODE_FENCE = ("```argdown", "```")
+
     @staticmethod
     def preprocess_ad(ad_raw: str) -> str:
         """preprocess argdown text"""
         ad_raw = ad_raw.replace("\n", " ")
         ad_raw = re.sub(r"\s{2,}", " ", ad_raw)
+        ad_raw = ad_raw.strip()
+
+        # remove code fences, if any
+        if ad_raw.startswith(ArgdownParser.CODE_FENCE[0]):
+            ad_raw = ad_raw[len(ArgdownParser.CODE_FENCE[0]) :]
+            if ad_raw.endswith(ArgdownParser.CODE_FENCE[1]):
+                ad_raw = ad_raw[: -len(ArgdownParser.CODE_FENCE[1])]
+            ad_raw = ad_raw.strip()
+
         ad_raw = ad_raw.replace("with?? ", "with ?? ")
         return ad_raw
 

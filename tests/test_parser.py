@@ -17,6 +17,7 @@ def fixture_argdown_examples():
         """(1) premise \n---- (2) conclusion""",
         """(1) premise -- with mp from (1) -- (2) conclusion""",
         """
+        ```argdown
         (1) premise 1
         -- with mp from (1) --
         (2) i-conclusion 1
@@ -27,6 +28,7 @@ def fixture_argdown_examples():
         (6) premise 4
         ----
         (7) conclusion
+        ```
         """,
         """
         -- with mp from (1) --
@@ -186,6 +188,7 @@ def test_example_6(parsed_arguments):
 
 
 def test_empty_label():
+    """test empty label"""
     ad_raw = """() premise \n---- (2) conclusion"""
     argument = DeepA2Parser.parse_argdown(ad_raw)
     assert argument is None
